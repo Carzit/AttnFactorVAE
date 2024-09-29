@@ -1,0 +1,15 @@
+pandas
+numpy
+scipy
+tqdm
+
+torch
+tensorboard
+safetensors
+
+lion-pytorch
+dadaptation
+diffusers
+transformers
+
+toml

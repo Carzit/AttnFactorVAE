@@ -1,0 +1,8 @@
+data/
+eval/
+infer/
+log/
+__pycache__/
+model/
+test.ipynb
+note.md
