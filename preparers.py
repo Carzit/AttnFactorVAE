@@ -117,6 +117,97 @@ class Model_AttnFactorVAE_Preparer(Model_Preparer):
         if self.checkpoint_path:
             utils.load_checkpoint(checkpoint_path=self.checkpoint_path, model=model)
         return model
+    
+class Model_FactorVAE_Preparer(Model_Preparer):
+    def __init__(self) -> None:
+        super(Model_FactorVAE_Preparer, self).__init__(model_type="FactorVAE")
+
+        self.feature_size:int
+        self.num_gru_layers:int
+        self.gru_hidden_size:int
+        self.hidden_size:int
+        self.latent_size:int
+        self.gru_dropout:float
+        self.std_activation:Literal["exp", "softplus"]
+        self.checkpoint_path:str
+
+        self.configs:Dict[str, Any] = {"type":self.model_type}
+    
+    def __setattr__(self, name: str, value: Any) -> None:
+        if hasattr(self, "configs") and name != "configs":
+            self.configs[name] = value
+        return super().__setattr__(name, value)
+
+    def set_configs(self, 
+                    fundamental_feature_size,
+                    quantity_price_feature_size,
+                    num_gru_layers,
+                    gru_hidden_size,
+                    hidden_size,
+                    latent_size,
+                    gru_dropout,
+                    std_activation,
+                    checkpoint_path=None):
+        self.fundamental_feature_size = fundamental_feature_size
+        self.quantity_price_feature_size = quantity_price_feature_size
+        self.num_gru_layers = num_gru_layers
+        self.gru_hidden_size = gru_hidden_size
+        self.hidden_size = hidden_size
+        self.latent_size = latent_size
+        self.gru_dropout = gru_dropout
+        self.std_activation = std_activation
+        self.checkpoint_path = checkpoint_path
+
+    def load_configs(self, config_file: str) -> Dict[str, Any]:
+        configs = super().load_configs(config_file)
+        self.set_configs(fundamental_feature_size=configs["fundamental_feature_size"],
+                         quantity_price_feature_size=configs["quantity_price_feature_size"],
+                         num_gru_layers=configs["num_gru_layers"],
+                         gru_dropout=configs["gru_dropout"],
+                         gru_hidden_size=configs["gru_hidden_size"],
+                         hidden_size=configs["hidden_size"],
+                         latent_size=configs["latent_size"],
+                         std_activation=configs["std_activation"],
+                         checkpoint_path=configs["checkpoint_path"])
+    
+    def get_configs(self):
+        return self.configs
+        
+    def load_args(self, args: argparse.Namespace | argparse.ArgumentParser):
+        args = super().load_args(args)
+        self.set_configs(fundamental_feature_size=args.fundamental_feature_size,
+                         quantity_price_feature_size=args.quantity_price_feature_size,
+                         num_gru_layers=args.num_gru_layers,
+                         gru_dropout=args.gru_dropout,
+                         gru_hidden_size=args.gru_hidden_size,
+                         hidden_size=args.hidden_size,
+                         latent_size=args.latent_size,
+                         std_activation=args.std_activation,
+                         checkpoint_path=args.checkpoint_path)
+        
+    def prepare(self):
+        model = FactorVAE(feature_size=self.quantity_price_feature_size+self.fundamental_feature_size,
+                          num_gru_layers=self.num_gru_layers,
+                          gru_hidden_size=self.gru_hidden_size,
+                          hidden_size=self.hidden_size,
+                          latent_size=self.latent_size,
+                          gru_drop_out=self.gru_dropout,
+                          std_activ=self.std_activation)
+        if self.checkpoint_path:
+            self.load_checkpoint(model=model, checkpoint_path=self.checkpoint_path)
+        return model
+    
+    def load_checkpoint(self, model:FactorVAE, checkpoint_path:str):
+        state_dict = torch.load(checkpoint_path, weights_only=False)
+        feature_extractor_state_dict = {k.removeprefix("feature_extractor."): v for k, v in state_dict.items() if k.startswith("feature_extractor.")}
+        encoder_state_dict = {k.removeprefix("encoder."): v for k, v in state_dict.items() if k.startswith("encoder.")}
+        decoder_state_dict = {k.removeprefix("decoder."): v for k, v in state_dict.items() if k.startswith("decoder.")}
+        predictor_state_dict = {k.removeprefix("predictor."): v for k, v in state_dict.items() if k.startswith("predictor.")}
+        model.encoder.load_state_dict(encoder_state_dict)
+        model.decoder.load_state_dict(decoder_state_dict)
+        model.predictor.load_state_dict(predictor_state_dict)
+        if feature_extractor_state_dict:
+            model.feature_extractor.load_state_dict(predictor_state_dict)
 
 class ObjectiveLoss_Preparer:
     def __init__(self) -> None:

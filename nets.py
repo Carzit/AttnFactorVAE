@@ -81,13 +81,13 @@ class AttnFeatureExtractor(nn.Module):
 
 class FeatureExtractor(nn.Module):
     def __init__(self, 
-                 quantity_price_feature_size,
+                 feature_size,
                  hidden_size, 
                  num_gru_layer=1,
                  gru_dropout=0) -> None:
         super().__init__()
-        self.norm_layer = nn.LayerNorm(quantity_price_feature_size)
-        self.proj_layer = nn.Sequential(nn.Linear(quantity_price_feature_size, hidden_size), 
+        self.norm_layer = nn.LayerNorm(feature_size)
+        self.proj_layer = nn.Sequential(nn.Linear(feature_size, hidden_size), 
                                         nn.LeakyReLU())
         self.gru = nn.GRU(input_size=hidden_size,
                           hidden_size=hidden_size,
@@ -95,10 +95,10 @@ class FeatureExtractor(nn.Module):
                           num_layers=num_gru_layer,
                           dropout=gru_dropout)
         
-    def forward(self, quantity_price_features):
-        quantity_price_features = self.norm_layer(quantity_price_features)
-        quantity_price_features = self.proj_layer(quantity_price_features)
-        output, hidden_state = self.gru(quantity_price_features)
+    def forward(self, features):
+        features = self.norm_layer(features)
+        features = self.proj_layer(features)
+        output, hidden_state = self.gru(features)
         return output[-1]  # -> (batch_size, hidden_size)
 
 
@@ -369,7 +369,7 @@ class FactorVAE(nn.Module):
     Concretely, this architecture contains three components: feature extractor, factor encoder and factor decoder.
     """
     def __init__(self, 
-                 quantity_price_feature_size,
+                 feature_size,
                  num_gru_layers, 
                  gru_hidden_size,
                  hidden_size,
@@ -377,7 +377,7 @@ class FactorVAE(nn.Module):
                  gru_drop_out = 0.1, 
                  std_activ:Literal["exp", "softplus"] = "exp") -> None:
         super().__init__()
-        self.feature_extractor = FeatureExtractor(quantity_price_feature_size=quantity_price_feature_size,
+        self.feature_extractor = FeatureExtractor(feature_size=feature_size,
                                                   hidden_size=gru_hidden_size,
                                                   num_gru_layer=num_gru_layers,
                                                   gru_dropout=gru_drop_out)
@@ -393,15 +393,15 @@ class FactorVAE(nn.Module):
                                      hidden_size=hidden_size,
                                      latent_size=latent_size,
                                      std_activ=std_activ)
-    def forward(self, quantity_price_feature, y):
-        e = self.feature_extractor(quantity_price_feature)
+    def forward(self, features, y):
+        e = self.feature_extractor(features)
         mu_posterior, sigma_posterior = self.encoder(y, e)
         mu_prior, sigma_prior = self.predictor(e)
         y_hat = self.decoder(e, mu_posterior, sigma_posterior)
         return y_hat, mu_posterior, sigma_posterior, mu_prior, sigma_prior
     
-    def predict(self, quantity_price_feature):
-        e = self.feature_extractor(quantity_price_feature)
+    def predict(self, features):
+        e = self.feature_extractor(features)
         mu_prior, sigma_prior = self.predictor(e)
         y_pred = self.decoder(e, mu_prior, sigma_prior)
         return y_pred, mu_prior, sigma_prior    

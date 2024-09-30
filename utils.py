@@ -1,8 +1,7 @@
 import os
 import ast
 import argparse
-from typing import Callable, Literal, Union, Optional, List, Dict, Any
-from collections import OrderedDict
+from typing import Tuple, Literal, Union, Optional, List, Dict, Any
 
 import json
 import toml
@@ -11,7 +10,7 @@ import yaml
 import pandas as pd
 import numpy as np
 import torch
-from safetensors.torch import load_file
+from safetensors.torch import load_file, save_file
 
 def str2bool(value:Union[bool, str]):
     if isinstance(value, bool):
@@ -97,7 +96,16 @@ def load_dataframe(path:str, format:Literal["csv", "pkl", "parquet", "feather"]=
         raise NotImplementedError()
     return df
 
-def load_checkpoint(checkpoint_path:str, model:torch.nn.Module):
+def save_checkpoint(model:torch.nn.Module, save_folder:str, save_name:str, save_format:Literal[".pt",".safetensors"]=".pt"):
+    save_path = os.path.join(save_folder, save_name+save_format)
+    if save_format == ".pt":
+        torch.save(model.state_dict(), save_path)
+    elif save_format == ".safetensors":
+        save_file(model.state_dict(), save_path)
+    else:
+        raise ValueError(f"Unrecognized file format`{save_format}`")
+
+def load_checkpoint(model:torch.nn.Module, checkpoint_path:str):
     if checkpoint_path.endswith(".pt"):
         model.load_state_dict(torch.load(checkpoint_path, weights_only=False))
     elif checkpoint_path.endswith(".safetensors"):
@@ -136,8 +144,6 @@ def save_configs(config_file:str, config_dict:Dict):
         else:
             raise ValueError(f"Unsupported config file format: {file_ext}")
 
-    print(f"Config saved to {config_file}")
-
 def find_common_root(dirs:str):
     if not dirs:
         raise ValueError("The list of directories is empty.")
@@ -148,5 +154,60 @@ def find_common_root(dirs:str):
         return common_root
     except ValueError:
         raise RuntimeError("No common root directory found.")
+    
+@torch.no_grad()
+def drop_nan_inf3(a:torch.Tensor, b:torch.Tensor, c:torch.Tensor) -> Tuple[torch.Tensor]:
+    a_valid_mask = torch.all(~torch.isnan(a) & ~torch.isinf(a), dim=(0, 2))
+    b_valid_mask = torch.all(~torch.isnan(b) & ~torch.isinf(b), dim=1)
+    c_valid_mask = ~torch.isnan(c) & ~torch.isinf(c)
+    
+    valid_indices = a_valid_mask & b_valid_mask & c_valid_mask
+    
+    a_filtered = a[:, valid_indices, :]
+    b_filtered = b[valid_indices, :]
+    c_filtered = c[valid_indices]
+    
+    return a_filtered, b_filtered, c_filtered, valid_indices
+
+@torch.no_grad()
+def loose_drop_nan_inf3(a:torch.Tensor, b:torch.Tensor, c:torch.Tensor) -> Tuple[torch.Tensor]:
+    a_valid_mask = torch.any(~torch.isnan(a) & ~torch.isinf(a), dim=(0, 2))
+    b_valid_mask = torch.any(~torch.isnan(b) & ~torch.isinf(b), dim=1)
+    c_valid_mask = ~torch.isnan(c) & ~torch.isinf(c)
+    
+    valid_indices = a_valid_mask & b_valid_mask & c_valid_mask
+    
+    a_filtered = a[:, valid_indices, :]
+    b_filtered = b[valid_indices, :]
+    c_filtered = c[valid_indices]
+    
+    return a_filtered, b_filtered, c_filtered, valid_indices
+
+@torch.no_grad()
+def drop_nan_inf2(a:torch.Tensor, c:torch.Tensor) -> Tuple[torch.Tensor]:
+    a_valid_mask = torch.all(~torch.isnan(a) & ~torch.isinf(a), dim=(0, 2))
+    c_valid_mask = ~torch.isnan(c) & ~torch.isinf(c)
+    
+    valid_indices = a_valid_mask & b_valid_mask & c_valid_mask
+    
+    a_filtered = a[:, valid_indices, :]
+    b_filtered = b[valid_indices, :]
+    c_filtered = c[valid_indices]
+    
+    return a_filtered, b_filtered, c_filtered, valid_indices
+
+@torch.no_grad()
+def loose_drop_nan_inf3(a:torch.Tensor, c:torch.Tensor) -> Tuple[torch.Tensor]:
+    a_valid_mask = torch.any(~torch.isnan(a) & ~torch.isinf(a), dim=(0, 2))
+    b_valid_mask = torch.any(~torch.isnan(b) & ~torch.isinf(b), dim=1)
+    c_valid_mask = ~torch.isnan(c) & ~torch.isinf(c)
+    
+    valid_indices = a_valid_mask & b_valid_mask & c_valid_mask
+    
+    a_filtered = a[:, valid_indices, :]
+    b_filtered = b[valid_indices, :]
+    c_filtered = c[valid_indices]
+    
+    return a_filtered, b_filtered, c_filtered, valid_indices
     
 

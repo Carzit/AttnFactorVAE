@@ -231,6 +231,44 @@ class StockSequenceDataset(Dataset):
             label = convert_nan_inf(label)
         return quantity_price_feature, fundamental_feature, label, valid_indices
 
+class StockSequenceCatDataset(Dataset):
+    """StockSequenceDataset 类继承自 Dataset，将 StockDataset 中的单日数据堆叠为日期序列数据"""
+    def __init__(self, 
+                 stock_dataset:StockDataset, 
+                 seq_len:int,
+                 mode:Literal["convert", "drop", "loose_drop"] = "convert") -> None:
+        super().__init__()
+        self.stock_dataset:StockDataset = stock_dataset # 原StockDataset对象
+        self.seq_len:int = seq_len # 日期序列长度
+        self.mode:str = mode
+
+        self.stock_codes:List[str] = self.stock_dataset.stock_codes
+        self.dates:List[str] = self.stock_dataset.dates
+
+    def __len__(self):
+        """获取数据集长度"""
+        return len(self.stock_dataset) - self.seq_len + 1
+    
+    def __getitem__(self, index) -> Tuple[torch.Tensor]:
+        """根据索引 index 从 StockDataset 中获取一个长度为 seq_len 的序列数据。"""
+        quantity_price_feature = torch.stack([self.stock_dataset[i][0] for i in range(index, index+self.seq_len)], dim=0) # (seq_len, num_stock, num_feature1)
+        fundamental_feature = torch.stack([self.stock_dataset[i][1] for i in range(index, index+self.seq_len)], dim=0) # (seq_len, num_stock, num_feature2)
+        label = self.stock_dataset[index+self.seq_len-1][2] # (num_stock)
+        feature = torch.cat((quantity_price_feature, fundamental_feature), dim=-1)
+        if self.mode == "convert":
+            feature = convert_nan_inf(feature)
+            label = convert_nan_inf(label)
+            valid_indices = torch.range(0, len(label))
+        elif self.mode == "drop":
+            quantity_price_feature, fundamental_feature, label, valid_indices = drop_nan_inf(quantity_price_feature, fundamental_feature, label)
+        elif self.mode == "loose_drop":
+            quantity_price_feature, fundamental_feature, label, valid_indices = loose_drop_nan_inf(quantity_price_feature, fundamental_feature, label)
+            quantity_price_feature = convert_nan_inf(quantity_price_feature)
+            fundamental_feature = convert_nan_inf(fundamental_feature)
+            label = convert_nan_inf(label)
+        return quantity_price_feature, fundamental_feature, label, valid_indices
+
+
 class RandomSampleSampler(Sampler):
     def __init__(self, data_source:Dataset, num_samples_per_epoch:int):
         self.data_source:Dataset = data_source
