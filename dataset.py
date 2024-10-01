@@ -16,33 +16,9 @@ import numpy as np
 from preparers import LoggerPreparer
 from utils import str2dtype, read_configs, find_common_root
 
-def save_dataframe(df:pd.DataFrame, path:str, format:Literal["csv", "pkl", "parquet", "feather"])->None:
-    if format == "csv":
-        df.to_csv(path)
-    elif format ==  "pkl":
-        df.to_pickle(path)
-    elif format == "parquet":
-        df.to_parquet(path)
-    elif format == "feather":
-        df.to_feather(path)
-    else:
-        raise NotImplementedError()
-
-def load_dataframe(path:str, format:Literal["csv", "pkl", "parquet", "feather"])->pd.DataFrame:
-    if format == "csv":
-        df = pd.read_csv(path, index_col=0)
-    elif format ==  "pkl":
-        df = pd.read_pickle(path)
-    elif format == "parquet":
-        df = pd.read_parquet(path)
-    elif format == "feather":
-        df = pd.read_feather(path)
-    else:
-        raise NotImplementedError()
-    return df
 
 @torch.no_grad()
-def drop_nan_inf(a:torch.Tensor, b:torch.Tensor, c:torch.Tensor) -> Tuple[torch.Tensor]:
+def drop_nan_inf3(a:torch.Tensor, b:torch.Tensor, c:torch.Tensor) -> Tuple[torch.Tensor]:
     a_valid_mask = torch.all(~torch.isnan(a) & ~torch.isinf(a), dim=(0, 2))
     b_valid_mask = torch.all(~torch.isnan(b) & ~torch.isinf(b), dim=1)
     c_valid_mask = ~torch.isnan(c) & ~torch.isinf(c)
@@ -56,7 +32,7 @@ def drop_nan_inf(a:torch.Tensor, b:torch.Tensor, c:torch.Tensor) -> Tuple[torch.
     return a_filtered, b_filtered, c_filtered, valid_indices
 
 @torch.no_grad()
-def loose_drop_nan_inf(a:torch.Tensor, b:torch.Tensor, c:torch.Tensor) -> Tuple[torch.Tensor]:
+def loose_drop_nan_inf3(a:torch.Tensor, b:torch.Tensor, c:torch.Tensor) -> Tuple[torch.Tensor]:
     a_valid_mask = torch.any(~torch.isnan(a) & ~torch.isinf(a), dim=(0, 2))
     b_valid_mask = torch.any(~torch.isnan(b) & ~torch.isinf(b), dim=1)
     c_valid_mask = ~torch.isnan(c) & ~torch.isinf(c)
@@ -68,6 +44,30 @@ def loose_drop_nan_inf(a:torch.Tensor, b:torch.Tensor, c:torch.Tensor) -> Tuple[
     c_filtered = c[valid_indices]
     
     return a_filtered, b_filtered, c_filtered, valid_indices
+
+@torch.no_grad()
+def drop_nan_inf2(a:torch.Tensor, b:torch.Tensor) -> Tuple[torch.Tensor]:
+    a_valid_mask = torch.all(~torch.isnan(a) & ~torch.isinf(a), dim=(0, 2))
+    b_valid_mask = ~torch.isnan(b) & ~torch.isinf(b)
+    
+    valid_indices = a_valid_mask & b_valid_mask
+    
+    a_filtered = a[:, valid_indices, :]
+    b_filtered = b[valid_indices]
+    
+    return a_filtered, b_filtered, valid_indices
+
+@torch.no_grad()
+def loose_drop_nan_inf2(a:torch.Tensor, b:torch.Tensor) -> Tuple[torch.Tensor]:
+    a_valid_mask = torch.any(~torch.isnan(a) & ~torch.isinf(a), dim=(0, 2))
+    b_valid_mask = ~torch.isnan(b) & ~torch.isinf(b)
+    
+    valid_indices = a_valid_mask & b_valid_mask
+    
+    a_filtered = a[:, valid_indices, :]
+    b_filtered = b[valid_indices]
+    
+    return a_filtered, b_filtered, valid_indices
 
 @torch.no_grad()
 def convert_nan_inf(tensor:torch.Tensor) -> torch.Tensor:
@@ -223,9 +223,9 @@ class StockSequenceDataset(Dataset):
             label = convert_nan_inf(label)
             valid_indices = torch.range(0, len(label))
         elif self.mode == "drop":
-            quantity_price_feature, fundamental_feature, label, valid_indices = drop_nan_inf(quantity_price_feature, fundamental_feature, label)
+            quantity_price_feature, fundamental_feature, label, valid_indices = drop_nan_inf3(quantity_price_feature, fundamental_feature, label)
         elif self.mode == "loose_drop":
-            quantity_price_feature, fundamental_feature, label, valid_indices = loose_drop_nan_inf(quantity_price_feature, fundamental_feature, label)
+            quantity_price_feature, fundamental_feature, label, valid_indices = loose_drop_nan_inf3(quantity_price_feature, fundamental_feature, label)
             quantity_price_feature = convert_nan_inf(quantity_price_feature)
             fundamental_feature = convert_nan_inf(fundamental_feature)
             label = convert_nan_inf(label)
@@ -260,14 +260,12 @@ class StockSequenceCatDataset(Dataset):
             label = convert_nan_inf(label)
             valid_indices = torch.range(0, len(label))
         elif self.mode == "drop":
-            quantity_price_feature, fundamental_feature, label, valid_indices = drop_nan_inf(quantity_price_feature, fundamental_feature, label)
+            feature, label, valid_indices = drop_nan_inf2(feature, label)
         elif self.mode == "loose_drop":
-            quantity_price_feature, fundamental_feature, label, valid_indices = loose_drop_nan_inf(quantity_price_feature, fundamental_feature, label)
-            quantity_price_feature = convert_nan_inf(quantity_price_feature)
-            fundamental_feature = convert_nan_inf(fundamental_feature)
+            feature, label, valid_indices = loose_drop_nan_inf2(feature, label)
+            feature = convert_nan_inf(feature)
             label = convert_nan_inf(label)
-        return quantity_price_feature, fundamental_feature, label, valid_indices
-
+        return feature, label, valid_indices
 
 class RandomSampleSampler(Sampler):
     def __init__(self, data_source:Dataset, num_samples_per_epoch:int):
@@ -288,15 +286,14 @@ class RandomBatchSampler(Sampler):
         self.batch_size:int = batch_size
 
     def __iter__(self):
-        # 计算总的batch数量
         num_total_batches = len(self.data_source) // self.batch_size
-        # 随机选择 num_batches_per_epoch 个批次的起始索引
         selected_batches = random.sample(range(num_total_batches), self.num_batches_per_epoch)
-        # 生成这些批次的所有索引
+
         indices = []
         for batch_idx in selected_batches:
             start_idx = batch_idx * self.batch_size
             indices.extend(range(start_idx, start_idx + self.batch_size))
+            
         return iter(indices)
 
     def __len__(self):

@@ -45,7 +45,7 @@ def str2dtype(dtype:Literal["FP32", "FP64", "FP16", "BF16"]) -> torch.dtype:
     elif dtype == "BF16":
         return torch.bfloat16
     else:
-        raise argparse.ArgumentTypeError(f"Unexpected dtype `{dtype}`. dtype must be `FP32`, `FP64`, `FP16` or `BF16`.")
+        raise ValueError(f"Unexpected dtype `{dtype}`. dtype must be `FP32`, `FP64`, `FP16` or `BF16`.")
     
 def dtype2str(dtype:torch.dtype) -> str:
     if dtype == torch.float32:
@@ -57,7 +57,27 @@ def dtype2str(dtype:torch.dtype) -> str:
     elif dtype == torch.bfloat16:
         return "BF16"
     else:
-        raise argparse.ArgumentTypeError(f"Unexpected dtype `{dtype}`. dtype must be `FP32`, `FP64`, `FP16` or `BF16`.")
+        raise ValueError(f"Unexpected dtype `{dtype}`. dtype must be `torch.float32`, `torch.float64`, `torch.float16` or `torch.bfloat16`.")
+    
+def str2dtype_np(dtype:Literal["FP32", "FP64", "FP16", "BF16"]) -> torch.dtype:
+    if dtype == "FP32":
+        return np.float32
+    elif dtype == "FP64":
+        return np.float64
+    elif dtype == "FP16":
+        return np.float16
+    else:
+        raise ValueError(f"Unexpected dtype `{dtype}`. dtype must be `FP32`, `FP64`, `FP16` or `BF16`.")
+    
+def dtype2str_np(dtype:torch.dtype) -> str:
+    if dtype == np.float32:
+        return "FP32"
+    elif dtype == np.float64:
+        return "FP64"
+    elif dtype == np.float16:
+        return "FP16"
+    else:
+        raise ValueError(f"Unexpected dtype `{dtype}`. dtype must be `numpy.float32`, `numpy.float64` or `numpy.float16`.")
     
 def str2device(device:Literal["auto", "cpu", "cuda"]) -> torch.device:
     if device == "auto":
@@ -154,60 +174,3 @@ def find_common_root(dirs:str):
         return common_root
     except ValueError:
         raise RuntimeError("No common root directory found.")
-    
-@torch.no_grad()
-def drop_nan_inf3(a:torch.Tensor, b:torch.Tensor, c:torch.Tensor) -> Tuple[torch.Tensor]:
-    a_valid_mask = torch.all(~torch.isnan(a) & ~torch.isinf(a), dim=(0, 2))
-    b_valid_mask = torch.all(~torch.isnan(b) & ~torch.isinf(b), dim=1)
-    c_valid_mask = ~torch.isnan(c) & ~torch.isinf(c)
-    
-    valid_indices = a_valid_mask & b_valid_mask & c_valid_mask
-    
-    a_filtered = a[:, valid_indices, :]
-    b_filtered = b[valid_indices, :]
-    c_filtered = c[valid_indices]
-    
-    return a_filtered, b_filtered, c_filtered, valid_indices
-
-@torch.no_grad()
-def loose_drop_nan_inf3(a:torch.Tensor, b:torch.Tensor, c:torch.Tensor) -> Tuple[torch.Tensor]:
-    a_valid_mask = torch.any(~torch.isnan(a) & ~torch.isinf(a), dim=(0, 2))
-    b_valid_mask = torch.any(~torch.isnan(b) & ~torch.isinf(b), dim=1)
-    c_valid_mask = ~torch.isnan(c) & ~torch.isinf(c)
-    
-    valid_indices = a_valid_mask & b_valid_mask & c_valid_mask
-    
-    a_filtered = a[:, valid_indices, :]
-    b_filtered = b[valid_indices, :]
-    c_filtered = c[valid_indices]
-    
-    return a_filtered, b_filtered, c_filtered, valid_indices
-
-@torch.no_grad()
-def drop_nan_inf2(a:torch.Tensor, c:torch.Tensor) -> Tuple[torch.Tensor]:
-    a_valid_mask = torch.all(~torch.isnan(a) & ~torch.isinf(a), dim=(0, 2))
-    c_valid_mask = ~torch.isnan(c) & ~torch.isinf(c)
-    
-    valid_indices = a_valid_mask & b_valid_mask & c_valid_mask
-    
-    a_filtered = a[:, valid_indices, :]
-    b_filtered = b[valid_indices, :]
-    c_filtered = c[valid_indices]
-    
-    return a_filtered, b_filtered, c_filtered, valid_indices
-
-@torch.no_grad()
-def loose_drop_nan_inf3(a:torch.Tensor, c:torch.Tensor) -> Tuple[torch.Tensor]:
-    a_valid_mask = torch.any(~torch.isnan(a) & ~torch.isinf(a), dim=(0, 2))
-    b_valid_mask = torch.any(~torch.isnan(b) & ~torch.isinf(b), dim=1)
-    c_valid_mask = ~torch.isnan(c) & ~torch.isinf(c)
-    
-    valid_indices = a_valid_mask & b_valid_mask & c_valid_mask
-    
-    a_filtered = a[:, valid_indices, :]
-    b_filtered = b[valid_indices, :]
-    c_filtered = c[valid_indices]
-    
-    return a_filtered, b_filtered, c_filtered, valid_indices
-    
-
