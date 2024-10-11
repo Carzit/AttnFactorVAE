@@ -136,6 +136,11 @@ def load_checkpoint(model:torch.nn.Module, checkpoint_path:str):
 def check(tensor:torch.Tensor):
     return torch.any(torch.isnan(tensor) | torch.isinf(tensor))
 
+def check_attr_dict_match(obj, dic:Dict, names:List[str]):
+    for name in names:
+        assert hasattr(obj, name) and name in dic
+        assert getattr(obj, name) == dic[name]
+
 def read_configs(config_file:str) -> Dict:
     if not os.path.exists(config_file):
         raise FileNotFoundError(f"Config file `{config_file}` not found.")

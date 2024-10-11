@@ -7,13 +7,13 @@ from numbers import Number
 from typing import List, Dict, Tuple, Optional, Literal, Union, Any, Callable
 
 from tqdm import tqdm
-from scipy.stats import pearsonr, spearmanr
+from safetensors.torch import save_file, load_file
 
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.utils.tensorboard.writer import SummaryWriter
-from safetensors.torch import save_file, load_file
+
 
 from dataset import DataLoader_Preparer, StockSequenceDataset, StockDataset
 from nets import AttnFactorVAE
@@ -42,7 +42,7 @@ class AttnFactorVAETrainer:
         self.predictor_optimizer_preparer = Optimizer_Preparer("Predictor_Optimizer")
         self.dataloader_preparer = DataLoader_Preparer()
 
-        self.logger:logging.Logger
+        self.logger:logging.Logger = None
         self.writer:SummaryWriter = None
 
         self.max_epoches:int
@@ -246,7 +246,7 @@ class AttnFactorVAETrainer:
                 train_loss = train_vae_loss + train_pred_loss
                 train_loss.backward()
                 if self.grad_clip_value and self.grad_clip_value > 0:
-                    torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=self.grad_clip)
+                    torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=self.grad_clip_value)
                 if self.grad_clip_norm and self.grad_clip_norm > 0:
                     torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=self.grad_clip_norm)
                 vae_optimizer.step()

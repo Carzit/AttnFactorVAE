@@ -70,16 +70,17 @@ class FactorProcessor(Processor):
                  folder_path:str):
         self.folder_path:str = folder_path #待处理数据所在文件夹的路径
 
-        self.common_dates:List = None #共有日期（用于后续做数据对齐）
-        self.common_codes:List = None #共有股票代码（用于后续做数据对齐）
-        self.factor_names:List = [] #因子名
+        self.common_dates:List[str] = None #共有日期（用于后续做数据对齐）
+        self.common_codes:List[str] = None #共有股票代码（用于后续做数据对齐）
+        self.factor_names:List[str] = [] #因子名
 
-        self.factor_data_list:List[FactorData] = [] #所有Alpha数据
+        self.factor_data_list:List[FactorData] = []
 
-    def read_and_process_file(self, file_path, file_format) -> FactorData:
+    def read_and_process_file(self, 
+                              file_path:str, 
+                              file_format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> FileData:
         df = load_dataframe(path=file_path, format=file_format)
-        return FileData(path=file_path, 
-                        dataframe=df)
+        return FileData(path=file_path, dataframe=df)
     
     def load_data(self, file_format:str) -> None:
         # 读取指定文件夹中的所有pkl文件，处理数据并存储在 alpha_data_list 中，同时计算所有文件中共同的日期和股票代码。
@@ -129,12 +130,6 @@ class FactorProcessor(Processor):
     def process(self, 
                 save_folder:Optional[str]=os.curdir,
                 save_format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> None:
-        """x
-        logging.debug("recording extra info")
-        with open(os.path.join(save_folder, "alpha_extra_info.json"), "w") as f:
-            json.dump({"dates": self.common_dates,
-                       "stock_codes": self.common_codes}, f)
-        """
         logging.debug("merging data...")
         for date in tqdm(self.common_dates):
             merged_df = self.merge_date(date)
@@ -146,7 +141,7 @@ class QuantityPriceFeature_FactorProcessor(FactorProcessor):
     def __init__(self, folder_path: str):
         super().__init__(folder_path)
         
-    def read_and_process_file(self, file_path, file_format) -> FactorData:
+    def read_and_process_file(self, file_path:str, file_format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> FactorData:
         df = load_dataframe(path=file_path, format=file_format)
         codes = df.columns.tolist()
         dates = df.index.tolist()
@@ -163,7 +158,7 @@ class FundamentalFeature_FactorProcessor(FactorProcessor):
     def __init__(self, folder_path: str):
         super().__init__(folder_path)
         
-    def read_and_process_file(self, file_path, file_format) -> FactorData:
+    def read_and_process_file(self, file_path:str, file_format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> FactorData:
         df = load_dataframe(path=file_path, format=file_format)
         codes = df.columns.tolist()
         dates = df.index.tolist()
@@ -180,7 +175,7 @@ class LabelProcessor(FactorProcessor):
     def __init__(self, folder_path: str):
         super().__init__(folder_path)
         
-    def read_and_process_file(self, file_path, file_format) -> FactorData:
+    def read_and_process_file(self, file_path:str, file_format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> FactorData:
         df = load_dataframe(path=file_path, format=file_format)
         codes = df.columns.tolist()
         dates = df.index.tolist()
