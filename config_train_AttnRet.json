@@ -1,0 +1,44 @@
+{
+    "Model": {
+        "type": "AttnRet",
+        "fundamental_feature_size": 31,
+        "quantity_price_feature_size": 101,
+        "num_gru_layers": 4,
+        "gru_hidden_size": 32,
+        "gru_dropout": 0.1,
+        "num_fc_layers": 4,
+        "checkpoint_path": "model\\AttnFactorVAE\\test_softmax\\AttnFactorVAE_epoch11.pt"
+    },
+    "Optimizer": {
+        "optimizer_type": "Lion",
+        "optimizer_kwargs": {},
+        "learning_rate": 0.0001,
+        "lr_scheduler_type": "linear",
+        "lr_scheduler_warmup_steps": 0,
+        "lr_scheduler_num_cycles": 0.5,
+        "lr_scheduler_power": 1.0
+    },
+    "Dataset": {
+        "dataset_path": "data\\dataset.pt",
+        "num_workers": 4,
+        "shuffle": true,
+        "num_batches_per_epoch": 20,
+        "mode": "loose_drop",
+        "seq_len": 20
+    },
+    "Train": {
+        "max_epoches": 40,
+        "grad_clip_norm": 5,
+        "grad_clip_value": -1,
+        "detect_anomaly": true,
+        "device": "cuda",
+        "dtype": "FP32",
+        "log_folder": "log",
+        "sample_per_batch": -1,
+        "report_per_epoch": 1,
+        "save_per_epoch": 1,
+        "save_folder": "model\\AttnFRet\\test",
+        "save_name": "AttnRet",
+        "save_format": ".pt"
+    }
+}

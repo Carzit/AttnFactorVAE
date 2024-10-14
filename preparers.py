@@ -199,8 +199,8 @@ class Model_AttnFactorVAE_Preparer(Model_Preparer):
                 transfer.set_logger(logger=self.logger)
                 transfer.load_state_dict(checkpoint_path)
                 transfer.fvae2afvae(dest=model)
-            elif model_type == "RiskAttention":
-                self.logger.info("Loading attn_feature_extractor weights from the RiskAttention model...")
+            elif model_type == "AttnRet":
+                self.logger.info("Loading attn_feature_extractor weights from the AttnRet model...")
                 utils.check_attr_dict_match(self, 
                                             checkpoint_config["Model"], 
                                             names=["fundamental_feature_size", 
@@ -232,8 +232,8 @@ class Model_FactorVAE_Preparer(Model_Preparer):
         self.gru_hidden_size:int
         self.hidden_size:int
         self.latent_size:int
-        self.gru_dropout:float = 0.1
-        self.std_activation:Literal["exp", "softplus"] = "softplus"
+        self.gru_dropout:float
+        self.std_activation:Literal["exp", "softplus"]
     
     def __setattr__(self, name: str, value: Any) -> None:
         super().__setattr__(name, value)
@@ -323,15 +323,15 @@ class Model_FactorVAE_Preparer(Model_Preparer):
                 self.logger.warning("Failed to load weight. Default randomly initialized weights will be used.")
 
 
-class Model_RiskAttention_Preparer(Model_Preparer):
+class Model_AttnRet_Preparer(Model_Preparer):
     def __init__(self) -> None:
-        super(Model_FactorVAE_Preparer, self).__init__(model_type="RiskAttention")
+        super(Model_AttnRet_Preparer, self).__init__(model_type="AttnRet")
 
         self.fundamental_feature_size:int
         self.quantity_price_feature_size:int
         self.num_gru_layers:int
         self.gru_hidden_size:int
-        self.gru_dropout:float = 0.1
+        self.gru_dropout:float
         self.num_fc_layers:int
     
     def __setattr__(self, name: str, value: Any) -> None:
@@ -396,8 +396,8 @@ class Model_RiskAttention_Preparer(Model_Preparer):
         if os.path.exists(os.path.join(checkpoint_folder, "config.json")):
             checkpoint_config = utils.read_configs(os.path.join(checkpoint_folder, "config.json"))
             model_type = checkpoint_config["Model"]["type"]
-            if model_type == "RiskAttention":
-                self.logger.info("Loading RiskAttention weights...")
+            if model_type == "AttnRet":
+                self.logger.info("Loading AttnRet weights...")
                 utils.load_checkpoint(model, checkpoint_path)
             elif model_type == "AttnFactorVAE":
                 self.logger.info("Loading attn_feature_extractor weights from the AttnFactorVAE model...")
@@ -406,8 +406,7 @@ class Model_RiskAttention_Preparer(Model_Preparer):
                                             names=["fundamental_feature_size", 
                                                    "quantity_price_feature_size",
                                                    "num_gru_layers",
-                                                   "gru_hidden_size",
-                                                   "gru_drop_out"])
+                                                   "gru_hidden_size"])
                 transfer = Model_WeightTransfer()
                 transfer.set_logger(logger=self.logger)
                 transfer.load_state_dict(checkpoint_path)

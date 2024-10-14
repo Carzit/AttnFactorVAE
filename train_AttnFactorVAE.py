@@ -7,7 +7,6 @@ from numbers import Number
 from typing import List, Dict, Tuple, Optional, Literal, Union, Any, Callable
 
 from tqdm import tqdm
-from safetensors.torch import save_file, load_file
 
 import torch
 import torch.nn as nn
@@ -430,7 +429,6 @@ if __name__ == "__main__":
                             log_file=os.path.join(args.log_folder, args.log_name)).get_logger()
     
     logger.debug(f"Command: {' '.join(sys.argv)}")
-    logger.debug(f"Params: {vars(args)}")
 
     trainer = AttnFactorVAETrainer()
     trainer.set_logger(logger=logger)

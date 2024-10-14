@@ -390,7 +390,7 @@ def parse_args():
     parser.add_argument("--split_ratio", type=float, nargs=3, default=[0.7, 0.2, 0.1], help="Split ratio for train-validation-test. Default 0.7, 0.2, 0.1")
     parser.add_argument("--mask_len", type=int, default=0, help="Mask seq length to avoid model cheat(get information from future), e.g. mask 20 days when training prediction for ret20. Default 0")
     parser.add_argument("--mode", type=str, default="loose_drop", choices=["convert", "drop", "loose_drop"], help="Mode of processing missing value and infinite value. Literally `convert`(convert Nan to 0 and Inf to the greatest finite value representable by input's dtype), `drop`(drop stock code containing any Nan or Inf value in the sequence) or `loose_drop`(Only perform drop operations on stocks with values of all NaN or Inf that have appeared on any cross-section of the sequence). Default `loose_drop`")
-    parser.add_argument("--cat", type=utils.str2bool, default=True, help="Whether concat quantity-price features and fundamental features. Default True")
+    parser.add_argument("--cat", type=utils.str2bool, default=False, help="Whether concat quantity-price features and fundamental features. Default True")
     parser.add_argument("--dtype", type=str, default="FP32", choices=["FP32", "FP64", "FP16", "BF16"], help="Dtype of data tensor. Literally `FP32`, `FP64`, `FP16` or `BF16`. Default `FP32`")
 
     parser.add_argument("--train_seq_len", type=int, required=True, help="Sequence length (num of days) for train dataset")
