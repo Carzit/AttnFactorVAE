@@ -13,8 +13,8 @@ from torch.utils.data import Dataset, DataLoader, Sampler
 import pandas as pd
 import numpy as np
 
-from preparers import LoggerPreparer
-from utils import str2dtype, read_configs, find_common_root
+from preparers import Preparer, LoggerPreparer
+import utils
 
 
 @torch.no_grad()
@@ -71,7 +71,7 @@ def loose_drop_nan_inf2(a:torch.Tensor, b:torch.Tensor) -> Tuple[torch.Tensor]:
 
 @torch.no_grad()
 def convert_nan_inf(tensor:torch.Tensor) -> torch.Tensor:
-    converted_tensor = tensor.nan_to_num()
+    converted_tensor = tensor.nan_to_num(0., 0., 0.)
     return converted_tensor
 
 class StockDataset(Dataset):
@@ -97,12 +97,12 @@ class StockDataset(Dataset):
         self.label_file_paths:List[str] = [os.path.join(label_dir, f) for f in os.listdir(label_dir) if f.endswith(format)]
 
         self.cache_size:int = cache_size
-        self.dtype:torch.dtype = str2dtype(dtype=dtype)
+        self.dtype:torch.dtype = utils.str2dtype(dtype=dtype)
 
         self.stock_codes:List[str]
         self.dates:List[str]
 
-        data_dir = find_common_root([self.quantity_price_feature_dir, self.fundamental_feature_dir, self.label_dir])
+        data_dir = utils.find_common_root([self.quantity_price_feature_dir, self.fundamental_feature_dir, self.label_dir])
         with open(os.path.join(data_dir, "common_codes.json"), "r") as common_codes:
             self.stock_codes = json.load(common_codes)
         with open(os.path.join(data_dir, "common_dates.json"), "r") as common_dates:
@@ -212,7 +212,7 @@ class StockSequenceDataset(Dataset):
         """获取数据集长度"""
         return len(self.stock_dataset) - self.seq_len + 1
     
-    def __getitem__(self, index) -> Tuple[torch.Tensor]:
+    def __getitem__(self, index) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """根据索引 index 从 StockDataset 中获取一个长度为 seq_len 的序列数据。"""
         quantity_price_feature = torch.stack([self.stock_dataset[i][0] for i in range(index, index+self.seq_len)], dim=0) # (seq_len, num_stock, num_feature1)
         fundamental_feature = self.stock_dataset[index+self.seq_len-1][1] # (num_stock, num_feature2)
@@ -249,7 +249,7 @@ class StockSequenceCatDataset(Dataset):
         """获取数据集长度"""
         return len(self.stock_dataset) - self.seq_len + 1
     
-    def __getitem__(self, index) -> Tuple[torch.Tensor]:
+    def __getitem__(self, index) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """根据索引 index 从 StockDataset 中获取一个长度为 seq_len 的序列数据。"""
         quantity_price_feature = torch.stack([self.stock_dataset[i][0] for i in range(index, index+self.seq_len)], dim=0) # (seq_len, num_stock, num_feature1)
         fundamental_feature = torch.stack([self.stock_dataset[i][1] for i in range(index, index+self.seq_len)], dim=0) # (seq_len, num_stock, num_feature2)
@@ -299,8 +299,10 @@ class RandomBatchSampler(Sampler):
     def __len__(self):
         return self.num_batches_per_epoch * self.batch_size
 
-class DataLoader_Preparer:
+class DataLoader_Preparer(Preparer):
     def __init__(self) -> None:
+        super().__init__()
+
         self.dataset_path:str
         self.num_workers:int = 4
         self.shuffle:bool = True
@@ -308,13 +310,11 @@ class DataLoader_Preparer:
 
         self.seq_len:int
         self.mode:Literal["drop", "loose_drop", "convert"]
-        
-        self.configs:Dict[str, Any] = {}
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if hasattr(self, "configs") and name != "configs":
+        super().__setattr__(name, value)
+        if hasattr(self, "configs") and name != "configs" and name != "logger":
             self.configs[name] = value
-        return super().__setattr__(name, value)
     
     def set_configs(self, 
                     dataset_path, 
@@ -327,7 +327,7 @@ class DataLoader_Preparer:
         self.num_batches_per_epoch = num_batches_per_epoch
 
     def load_configs(self, config_file: str):
-        configs = read_configs(config_file=config_file)
+        configs = super().load_configs(config_file)
         self.set_configs(dataset_path=configs["Dataset"]["dataset_path"],
                          num_workers=configs["Dataset"]["num_workers"],
                          shuffle=configs["Dataset"]["shuffle"],
@@ -337,8 +337,7 @@ class DataLoader_Preparer:
         return self.configs
     
     def load_args(self, args: argparse.Namespace | argparse.ArgumentParser):
-        if isinstance(args, argparse.ArgumentParser):
-            args = args.parse_args()
+        args = super().load_args(args)
         self.set_configs(dataset_path=args.dataset_path,
                          num_workers=args.num_workers,
                          shuffle=args.shuffle,
@@ -377,7 +376,7 @@ class DataLoader_Preparer:
 def parse_args():
     parser = argparse.ArgumentParser(description="Data acquisition and dataset generation.")
 
-    parser.add_argument("--log_folder", type=str, default=os.curdir, help="Path of folder for log file. Default `.`")
+    parser.add_argument("--log_folder", type=str, default="log", help="Path of folder for log file. Default `.`")
     parser.add_argument("--log_name", type=str, default="dataset.log", help="Name of log file. Default `log.txt`")
 
     parser.add_argument("--quantity_price_feature_dir", type=str, default=None, help="Path of folder for quantity-price feature data files")
@@ -385,13 +384,15 @@ def parse_args():
     parser.add_argument("--label_dir", type=str, default=None, help="Path of folder for label data files")
     parser.add_argument("--data_dir", type=str, default=None, help="Path of data folder. Equal to specify quantity-price data dir as `DATA_DIR/quantity_price_feature`, fundamental data folder as `DATA_DIR/fundamental_feature` and label as `DATA_DIR/label`.")
 
-    parser.add_argument("--file_format", type=str, default="pkl", help="File format to read, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
+    parser.add_argument("--file_format", type=str, default="pkl", choices=["csv", "pkl", "parquet", "feather"], help="File format to read, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
     parser.add_argument("--label_name", type=str, required=True, help="Target label name (col name in y files)")
 
     parser.add_argument("--split_ratio", type=float, nargs=3, default=[0.7, 0.2, 0.1], help="Split ratio for train-validation-test. Default 0.7, 0.2, 0.1")
     parser.add_argument("--mask_len", type=int, default=0, help="Mask seq length to avoid model cheat(get information from future), e.g. mask 20 days when training prediction for ret20. Default 0")
     parser.add_argument("--mode", type=str, default="loose_drop", choices=["convert", "drop", "loose_drop"], help="Mode of processing missing value and infinite value. Literally `convert`(convert Nan to 0 and Inf to the greatest finite value representable by input's dtype), `drop`(drop stock code containing any Nan or Inf value in the sequence) or `loose_drop`(Only perform drop operations on stocks with values of all NaN or Inf that have appeared on any cross-section of the sequence). Default `loose_drop`")
-    parser.add_argument("--dtype", type=str, default="FP32", help="Dtype of data tensor. Literally `FP32`, `FP64`, `FP16` or `BF16`. Default `FP32`")
+    parser.add_argument("--cat", type=utils.str2bool, default=True, help="Whether concat quantity-price features and fundamental features. Default True")
+    parser.add_argument("--dtype", type=str, default="FP32", choices=["FP32", "FP64", "FP16", "BF16"], help="Dtype of data tensor. Literally `FP32`, `FP64`, `FP16` or `BF16`. Default `FP32`")
+
     parser.add_argument("--train_seq_len", type=int, required=True, help="Sequence length (num of days) for train dataset")
     parser.add_argument("--val_seq_len", type=int, default=None, help="Sequence length (num of days) for validation dataset. If not specified, default equal to train_seq_len.")
     parser.add_argument("--test_seq_len", type=int, default=None, help="Sequence length (num of days) for test dataset. If not specified, default equal to train_seq_len.")
@@ -422,10 +423,16 @@ if __name__ == "__main__":
                            dtype=args.dtype)# len 2744
 
     train_set, val_set, test_set = dataset.serial_split(ratios=args.split_ratio, mask=args.mask_len)
-    train_set = StockSequenceDataset(train_set, seq_len=args.train_seq_len, mode=args.mode)
-    val_set = StockSequenceDataset(val_set, seq_len=args.val_seq_len or args.train_seq_len, mode=args.mode)
-    test_set = StockSequenceDataset(test_set, seq_len=args.test_seq_len or args.train_seq_len, mode=args.mode)
+    if args.cat:
+        train_set = StockSequenceCatDataset(train_set, seq_len=args.train_seq_len, mode=args.mode)
+        val_set = StockSequenceCatDataset(val_set, seq_len=args.val_seq_len or args.train_seq_len, mode=args.mode)
+        test_set = StockSequenceCatDataset(test_set, seq_len=args.test_seq_len or args.train_seq_len, mode=args.mode)
+    else:
+        train_set = StockSequenceDataset(train_set, seq_len=args.train_seq_len, mode=args.mode)
+        val_set = StockSequenceDataset(val_set, seq_len=args.val_seq_len or args.train_seq_len, mode=args.mode)
+        test_set = StockSequenceDataset(test_set, seq_len=args.test_seq_len or args.train_seq_len, mode=args.mode)
     
+
     
     torch.save({"train": train_set, "val": val_set, "test": test_set}, args.save_path)
     logger.debug(f"Dataset saved to {args.save_path}")

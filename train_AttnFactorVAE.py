@@ -72,6 +72,11 @@ class AttnFactorVAETrainer:
 
     def set_logger(self, logger:logging.Logger):
         self.logger = logger
+        self.model_preparer.set_logger(logger)
+        self.dataloader_preparer.set_logger(logger)
+        self.loss_preparer.set_logger(logger)
+        self.vae_optimizer_preparer.set_logger(logger)
+        self.predictor_optimizer_preparer.set_logger(logger)
 
     def set_configs(self,
                     max_epoches:int,
@@ -326,10 +331,10 @@ def get_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="AttnFactorVAE Training.")
 
     parser.add_argument("--log_folder", type=str, default="log", help="Path of folder for log file. Default `.`")
-    parser.add_argument("--log_name", type=str, default="AttnFactorVAE_Train.log", help="Name of log file. Default `log.txt`")
+    parser.add_argument("--log_name", type=str, default="train_AttnFactorVAE.log", help="Name of log file. Default `log.txt`")
     
     parser.add_argument("--load_configs", type=str, default=None, help="Path of config file to load. Optional")
-    parser.add_argument("--save_configs", type=str, default=None, help="Path of config file to save. Default saved to save_folder as `config.toml`")
+    parser.add_argument("--save_configs", type=str, default=None, help="Path of config file to save. Default saved to save_folder as `config.json`")
 
     # dataloader config
     parser.add_argument("--dataset_path", type=str, help="Path of dataset .pt file")

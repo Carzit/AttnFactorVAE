@@ -92,7 +92,7 @@ class Preparer:
 
 class Model_Preparer(Preparer):
     def __init__(self, model_type) -> None:
-        super().__init__
+        super().__init__()
         self.model_type:str = model_type
         self.checkpoint_path:str = None
 
@@ -119,7 +119,7 @@ class Model_AttnFactorVAE_Preparer(Model_Preparer):
     
     def __setattr__(self, name: str, value: Any) -> None:
         super().__setattr__(name, value)
-        if hasattr(self, "configs") and name != "configs":
+        if hasattr(self, "configs") and name != "configs" and name != "logger":
             self.configs[name] = value
 
     def set_configs(self, 
@@ -237,12 +237,11 @@ class Model_FactorVAE_Preparer(Model_Preparer):
     
     def __setattr__(self, name: str, value: Any) -> None:
         super().__setattr__(name, value)
-        if hasattr(self, "configs") and name != "configs":
+        if hasattr(self, "configs") and name != "configs" and name != "logger":
             self.configs[name] = value
 
     def set_configs(self, 
-                    fundamental_feature_size,
-                    quantity_price_feature_size,
+                    feature_size,
                     num_gru_layers,
                     gru_hidden_size,
                     hidden_size,
@@ -250,8 +249,7 @@ class Model_FactorVAE_Preparer(Model_Preparer):
                     gru_dropout,
                     std_activation,
                     checkpoint_path=None):
-        self.fundamental_feature_size = fundamental_feature_size
-        self.quantity_price_feature_size = quantity_price_feature_size
+        self.feature_size = feature_size
         self.num_gru_layers = num_gru_layers
         self.gru_hidden_size = gru_hidden_size
         self.hidden_size = hidden_size
@@ -262,8 +260,7 @@ class Model_FactorVAE_Preparer(Model_Preparer):
 
     def load_configs(self, config_file: str) -> Dict[str, Any]:
         configs = super().load_configs(config_file)
-        self.set_configs(fundamental_feature_size=configs["Model"]["fundamental_feature_size"],
-                         quantity_price_feature_size=configs["Model"]["quantity_price_feature_size"],
+        self.set_configs(feature_size=configs["Model"]["feature_size"],
                          num_gru_layers=configs["Model"]["num_gru_layers"],
                          gru_dropout=configs["Model"]["gru_dropout"],
                          gru_hidden_size=configs["Model"]["gru_hidden_size"],
@@ -277,8 +274,7 @@ class Model_FactorVAE_Preparer(Model_Preparer):
         
     def load_args(self, args: argparse.Namespace | argparse.ArgumentParser):
         args = super().load_args(args)
-        self.set_configs(fundamental_feature_size=args.fundamental_feature_size,
-                         quantity_price_feature_size=args.quantity_price_feature_size,
+        self.set_configs(feature_size=args.feature_size,
                          num_gru_layers=args.num_gru_layers,
                          gru_dropout=args.gru_dropout,
                          gru_hidden_size=args.gru_hidden_size,
@@ -288,7 +284,7 @@ class Model_FactorVAE_Preparer(Model_Preparer):
                          checkpoint_path=args.checkpoint_path)
         
     def prepare(self):
-        model = FactorVAE(feature_size=self.quantity_price_feature_size+self.fundamental_feature_size,
+        model = FactorVAE(feature_size=self.feature_size,
                           num_gru_layers=self.num_gru_layers,
                           gru_hidden_size=self.gru_hidden_size,
                           hidden_size=self.hidden_size,
@@ -340,7 +336,7 @@ class Model_RiskAttention_Preparer(Model_Preparer):
     
     def __setattr__(self, name: str, value: Any) -> None:
         super().__setattr__(name, value)
-        if hasattr(self, "configs") and name != "configs":
+        if hasattr(self, "configs") and name != "configs" and name != "logger":
             self.configs[name] = value
 
     def set_configs(self, 
@@ -429,13 +425,13 @@ class Model_RiskAttention_Preparer(Model_Preparer):
 
 class ObjectiveLoss_Preparer(Preparer):
     def __init__(self) -> None:
-        super(ObjectiveLoss, self).__init__()
+        super().__init__()
         self.gamma:float = 1.0
         self.scale:float = 100.0
 
     def __setattr__(self, name: str, value: Any) -> None:
         super().__setattr__(name, value)
-        if hasattr(self, "configs") and name != "configs":
+        if hasattr(self, "configs") and name != "configs" and name != "logger":
             self.configs[name] = value
     
     def set_configs(self, gamma, scale):
@@ -473,7 +469,7 @@ class Optimizer_Preparer(Preparer):
 
     def __setattr__(self, name: str, value: Any) -> None:
         super().__setattr__(name, value)
-        if hasattr(self, "configs") and name != "configs" and name != "lr_scheduler_train_steps":
+        if hasattr(self, "configs") and name != "configs" and name != "logger" and name != "lr_scheduler_train_steps":
             self.configs[name] = value
     
     def set_configs(self, 

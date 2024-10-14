@@ -217,7 +217,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Data Preprocessor.")
 
     parser.add_argument("--log_folder", type=str, default=os.curdir, help="Path of folder for log file. Default `.`")
-    parser.add_argument("--log_name", type=str, default="log.txt", help="Name of log file. Default `log.txt`")
+    parser.add_argument("--log_name", type=str, default="data_construct.log", help="Name of log file. Default `log.txt`")
 
     parser.add_argument("--quantity_price_factor_folder", type=str, required=True, help="Path of folder for Quantity-Price Factor pickle files")
     parser.add_argument("--fundamental_factor_folder", type=str, required=True, help="Path of folder for Fundamental Factor pickle files")

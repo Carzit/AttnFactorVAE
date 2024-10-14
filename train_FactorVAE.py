@@ -15,17 +15,17 @@ from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.utils.tensorboard.writer import SummaryWriter
 from safetensors.torch import save_file, load_file
 
-from dataset import DataLoader_Preparer, StockSequenceDataset, StockDataset
-from nets import AttnFactorVAE
+from dataset import DataLoader_Preparer, StockSequenceCatDataset, StockDataset
+from nets import FactorVAE
 from loss import ObjectiveLoss, Pred_Loss
 from preparers import Model_FactorVAE_Preparer, ObjectiveLoss_Preparer, Optimizer_Preparer, LoggerPreparer
 import utils
 
-class AttnFactorVAETrainer:
+class FactorVAETrainer:
     """AttnFactorVAE Trainer"""
     def __init__(self) -> None:
         
-        self.model: AttnFactorVAE
+        self.model: FactorVAE
         self.vae_loss_func: ObjectiveLoss
         self.predictor_loss_func: Pred_Loss
         self.vae_optimizer: nn.Module
@@ -72,6 +72,11 @@ class AttnFactorVAETrainer:
 
     def set_logger(self, logger:logging.Logger):
         self.logger = logger
+        self.model_preparer.set_logger(logger)
+        self.dataloader_preparer.set_logger(logger)
+        self.loss_preparer.set_logger(logger)
+        self.vae_optimizer_preparer.set_logger(logger)
+        self.predictor_optimizer_preparer.set_logger(logger)
 
     def set_configs(self,
                     max_epoches:int,
@@ -222,19 +227,16 @@ class AttnFactorVAETrainer:
             val_pred_loss_list = []
             
             model.train()
-            for batch, (quantity_price_feature, fundamental_feature, label, valid_indices) in enumerate(tqdm(self.train_loader, desc=f"Epoch [{epoch+1}/{self.max_epoches}] Train")):    
-                if fundamental_feature.shape[0] <= 2:
+            for batch, (feature, label, valid_indices) in enumerate(tqdm(self.train_loader, desc=f"Epoch [{epoch+1}/{self.max_epoches}] Train")):    
+                if feature.shape[0] <= 2:
                     continue
-                quantity_price_feature = quantity_price_feature.to(device=self.device)
-                fundamental_feature = fundamental_feature.to(device=self.device)
+                feature = feature.to(device=self.device)
                 label = label.to(device=self.device)
                 
                 vae_optimizer.zero_grad()
                 predictor_optimizer.zero_grad()
 
-                y_hat, mu_posterior, sigma_posterior, mu_prior, sigma_prior = model(fundamental_feature,
-                                                                                    quantity_price_feature,  
-                                                                                    label)
+                y_hat, mu_posterior, sigma_posterior, mu_prior, sigma_prior = model(feature, label)
                 train_vae_loss, train_recon_loss, train_kld_loss= vae_loss_func(label, 
                                                                         y_hat, 
                                                                         mu_posterior, 
@@ -246,7 +248,7 @@ class AttnFactorVAETrainer:
                 train_loss = train_vae_loss + train_pred_loss
                 train_loss.backward()
                 if self.grad_clip_value and self.grad_clip_value > 0:
-                    torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=self.grad_clip)
+                    torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=self.grad_clip_value)
                 if self.grad_clip_norm and self.grad_clip_norm > 0:
                     torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=self.grad_clip_norm)
                 vae_optimizer.step()
@@ -267,15 +269,12 @@ class AttnFactorVAETrainer:
             
             model.eval()
             with torch.no_grad(): 
-                for batch, (quantity_price_feature, fundamental_feature, label, valid_indices) in enumerate(tqdm(self.val_loader, desc=f"Epoch [{epoch+1}/{self.max_epoches}] Val")):
-                    if fundamental_feature.shape[0] <= 2:
+                for batch, (feature, label, valid_indices) in enumerate(tqdm(self.val_loader, desc=f"Epoch [{epoch+1}/{self.max_epoches}] Val")):
+                    if feature.shape[0] <= 2:
                         continue
-                    quantity_price_feature = quantity_price_feature.to(device=self.device, dtype=self.dtype)
-                    fundamental_feature = fundamental_feature.to(device=self.device, dtype=self.dtype)
+                    feature = feature.to(device=self.device, dtype=self.dtype)
                     label = label.to(device=self.device, dtype=self.dtype)
-                    y_hat, mu_posterior, sigma_posterior, mu_prior, sigma_prior = model(fundamental_feature,  
-                                                                                        quantity_price_feature, 
-                                                                                        label)
+                    y_hat, mu_posterior, sigma_posterior, mu_prior, sigma_prior = model(feature, label)
                     val_vae_loss, val_recon_loss, val_kld_loss= vae_loss_func(label, 
                                                                               y_hat, 
                                                                               mu_posterior, 
@@ -326,7 +325,7 @@ def get_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="AttnFactorVAE Training.")
 
     parser.add_argument("--log_folder", type=str, default="log", help="Path of folder for log file. Default `.`")
-    parser.add_argument("--log_name", type=str, default="AttnFactorVAE_Train.log", help="Name of log file. Default `log.txt`")
+    parser.add_argument("--log_name", type=str, default="FactorVAE_Train.log", help="Name of log file. Default `log.txt`")
     
     parser.add_argument("--load_configs", type=str, default=None, help="Path of config file to load. Optional")
     parser.add_argument("--save_configs", type=str, default=None, help="Path of config file to save. Default saved to save_folder as `config.toml`")
@@ -339,8 +338,7 @@ def get_parser() -> argparse.Namespace:
     
     # model config
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Path of checkpoint. Optional")
-    parser.add_argument("--quantity_price_feature_size", type=int, help="Input size of quantity-price feature")
-    parser.add_argument("--fundamental_feature_size", type=int, help="Input size of fundamental feature")
+    parser.add_argument("--feature_size", type=int, help="Input size of quantity-price feature")
     parser.add_argument("--num_gru_layers", type=int, help="Num of GRU layers in feature extractor.")
     parser.add_argument("--gru_hidden_size", type=int, help="Hidden size of each GRU layer. num_gru_layers * gru_hidden_size i.e. the input size of FactorEncoder and Factor Predictor.")
     parser.add_argument("--hidden_size", type=int, help="Hidden size of FactorVAE(Encoder, Pedictor and Decoder), i.e. num of portfolios.")
@@ -349,13 +347,13 @@ def get_parser() -> argparse.Namespace:
     parser.add_argument("--std_activation", type=str, default="exp", choices=["exp", "softplus"], help="Activation function for standard deviation calculation, literally `exp` or `softplus`. Default `exp`")
 
     # general optimizer config
-    parser.add_argument("--optimizer_type", type=str, default="Lion", choices=["Adam", "AdamW", "Lion", "SGDNesterov", "DAdaptation", "Adafactor"], help="Optimizer for training. Literally `Adam`, `AdamW`, `Lion`, `SGDNesterov`, `DAdaptation` or `Adafactor`. Default `Lion`")
+    parser.add_argument("--optimizer_type", type=str, default=None, choices=["Adam", "AdamW", "Lion", "SGDNesterov", "DAdaptation", "Adafactor"], help="Optimizer for training. Literally `Adam`, `AdamW`, `Lion`, `SGDNesterov`, `DAdaptation` or `Adafactor`. Default `Lion`")
     parser.add_argument("--optimizer_kwargs", type=str, default=None, nargs="+", help="Key arguments for optimizer. e.g. `betas=(0.9, 0.99) weight_decay=0.0 use_triton=False decoupled_weight_decay=False` for optimizer Lion by default")
-    parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate for optimizer of AttnFactorVAE. Default 0.001")
-    parser.add_argument("--lr_scheduler_type", type=str, default="constant", choices=["constant", "linear", "cosine", "cosine_with_restarts", "polynomial", "adafactor"], help="Learning rate scheduler for optimizer. Literally `constant`, `linear`, `cosine`, `cosine_with_restarts`, `polynomial`, `adafactor`. Default `constant`.")
-    parser.add_argument("--lr_scheduler_warmup_steps", type=int, default=0, help="Number of steps for the warmup phase in the learning rate scheduler. Default 0")
-    parser.add_argument("--lr_scheduler_num_cycles", type=float, default=0.5, help="Number of cycles (for cosine scheduler) or factor in polynomial scheduler. Default 0.5")
-    parser.add_argument("--lr_scheduler_power", type=float, default=1.0, help="Power factor for polynomial learning rate scheduler. Default 1.0")
+    parser.add_argument("--learning_rate", type=float, default=None, help="Learning rate for optimizer of AttnFactorVAE. Default 0.001")
+    parser.add_argument("--lr_scheduler_type", type=str, default=None, choices=["constant", "linear", "cosine", "cosine_with_restarts", "polynomial", "adafactor"], help="Learning rate scheduler for optimizer. Literally `constant`, `linear`, `cosine`, `cosine_with_restarts`, `polynomial`, `adafactor`. Default `constant`.")
+    parser.add_argument("--lr_scheduler_warmup_steps", type=int, default=None, help="Number of steps for the warmup phase in the learning rate scheduler. Default 0")
+    parser.add_argument("--lr_scheduler_num_cycles", type=float, default=None, help="Number of cycles (for cosine scheduler) or factor in polynomial scheduler. Default 0.5")
+    parser.add_argument("--lr_scheduler_power", type=float, default=None, help="Power factor for polynomial learning rate scheduler. Default 1.0")
 
     # vae optimizer config
     parser.add_argument("--vae_optimizer_type", type=str, default="Lion", choices=["Adam", "AdamW", "Lion", "SGDNesterov", "DAdaptation", "Adafactor"], help="Optimizer for training. Literally `Adam`, `AdamW`, `Lion`, `SGDNesterov`, `DAdaptation` or `Adafactor`. Default `Lion`")
@@ -427,7 +425,7 @@ if __name__ == "__main__":
     logger.debug(f"Command: {' '.join(sys.argv)}")
     logger.debug(f"Params: {vars(args)}")
 
-    trainer = AttnFactorVAETrainer()
+    trainer = FactorVAETrainer()
     trainer.set_logger(logger=logger)
     if args.load_configs:
         trainer.load_configs(config_file=args.load_configs)
