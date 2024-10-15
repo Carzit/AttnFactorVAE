@@ -36,8 +36,8 @@ class AttnFactorVAEEvaluator:
         self.metric:Literal["MSE", "IC", "RankIC", "ICIR", "RankICIR"]
         self.pred_scores:List[float] = []
         self.y_true_list:List[torch.Tensor] = []
-        self.y_hat_list:List[torch.Tensor] = []
         self.y_pred_list:List[torch.Tensor] = []
+        self.y_hat_list:List[torch.Tensor] = []
         
         self.logger:logging.Logger
 
@@ -48,11 +48,13 @@ class AttnFactorVAEEvaluator:
         self.checkpoints:List[str]
         self.checkpoint_folder:str
         
-        self.plotter = Plotter()
+        self.plotter = utils.Plotter()
         self.plot_index = List[int]
 
     def set_logger(self, logger:logging.Logger):
         self.logger = logger
+        self.model_preparer.set_logger(logger)
+        self.dataloader_preparer.set_logger(logger)
 
     def set_configs(self,
                     device:torch.device,
@@ -163,17 +165,6 @@ class AttnFactorVAEEvaluator:
     def load_checkpoint(self, model_path:str):
         utils.load_checkpoint(checkpoint_path=model_path, model=self.model)
     
-    def calculate_icir(self, ic_list:List[float]):
-        ic_mean = np.mean(ic_list)
-        ic_std = np.std(ic_list, ddof=1)
-        n = len(ic_list)
-    
-        if ic_std == 0:
-            return float('inf') if ic_mean != 0 else 0
-        
-        icir = (ic_mean / ic_std)
-        return icir
-    
     def eval(self, checkpoint_path):
         self.load_checkpoint(checkpoint_path)
         if self.metric == "MSE":
@@ -190,35 +181,37 @@ class AttnFactorVAEEvaluator:
         model = self.model.to(device=self.device, dtype=self.dtype)
         model.eval() # set eval mode to frozen layers like dropout
         with torch.no_grad(): 
-            for batch, (quantity_price_feature, fundamental_feature, label, _) in enumerate(tqdm(self.test_loader)):
-                if fundamental_feature.shape[0] <= 2:
-                    continue
-                quantity_price_feature = quantity_price_feature.to(device=self.device)
-                fundamental_feature = fundamental_feature.to(device=self.device)
-                label = label.to(device=self.device)
-                y_pred, *_ = model(fundamental_feature, quantity_price_feature, label)
-                y_hat, *_ = model.predict(fundamental_feature, quantity_price_feature,)
-                pred_score = self.pred_eval_func(y_hat, label)
-                
-                self.pred_scores.append(pred_score.item())
-                self.y_true_list.append(label)
-                self.y_hat_list.append(y_hat)
-                self.y_pred_list.append(y_pred)
+            with utils.MeanVarianceAccumulator() as accumulator:
+                for batch, (quantity_price_feature, fundamental_feature, label, _) in enumerate(tqdm(self.test_loader)):
+                    if fundamental_feature.shape[0] <= 2:
+                        continue
+                    quantity_price_feature = quantity_price_feature.to(device=self.device)
+                    fundamental_feature = fundamental_feature.to(device=self.device)
+                    label = label.to(device=self.device)
+                    y_pred, *_ = model(fundamental_feature, quantity_price_feature, label)
+                    y_hat, *_ = model.predict(fundamental_feature, quantity_price_feature,)
+                    score = self.pred_eval_func(y_hat, label)
+
+                    accumulator.accumulate(score.item())
+                    self.pred_scores.append(score.item())
+                    self.y_true_list.append(label)
+                    self.y_hat_list.append(y_hat)
+                    self.y_pred_list.append(y_pred)
         if self.metric == "MSE" or self.metric == "IC" or self.metric == "RankIC":
-            y_pred_score = sum(self.pred_scores) / len(self.pred_scores)
+            y_pred_score = accumulator.mean()
         elif self.metric == "ICIR" or self.metric == "Rank_ICIR":
-            y_pred_score = self.calculate_icir(self.pred_scores)
+            y_pred_score = accumulator.mean() / accumulator.std()
         self.logger.info(f"{checkpoint_path[checkpoint_path.find('epoch'):checkpoint_path.find('.')]} {self.metric} Score: {y_pred_score}")
         with open(os.path.join(self.save_folder, f"{self.metric}_score.csv"), "a") as f:
             writer = csv.writer(f)
             writer.writerow([checkpoint_path, y_pred_score])
     
     def visualize(self, checkpoint_path:str, idx:int=0):
-        self.plotter.plot_score(self.pred_scores)
+        self.plotter.plot_score(self.pred_scores, metric=self.metric)
         self.plotter.save_fig(os.path.join(self.save_folder, f"{checkpoint_path[checkpoint_path.find('epoch'):checkpoint_path.find('.')]}_{self.metric}_Scores"))
         self.plotter.plot_pred_sample(self.y_true_list, 
-                                      self.y_hat_list, 
                                       self.y_pred_list,
+                                      self.y_hat_list, 
                                       idx=idx)
         self.plotter.save_fig(os.path.join(self.save_folder, f"{checkpoint_path[checkpoint_path.find('epoch'):checkpoint_path.find('.')]}_Trace_{idx}"))
 
@@ -230,39 +223,6 @@ class AttnFactorVAEEvaluator:
             self.eval(checkpoint_path=checkpoint)
             for idx in self.plot_index:
                 self.visualize(checkpoint_path=checkpoint, idx=idx)
-
-
-class Plotter:
-    def __init__(self) -> None:
-        pass
-    
-    def plot_score(self, pred_scores):
-        plt.figure(figsize=(10, 6))
-        plt.plot(pred_scores, marker='', color="b")
-        plt.title(f'Evaluation Scores')
-        plt.xlabel('Date')
-        plt.ylabel('Score')
-    
-    def plot_pred_sample(self, y_true_list, y_hat_list, y_pred_list, idx=0):
-        y_true_list = [y_true[idx].item() for y_true in y_true_list]
-        y_hat_list = [y_hat[idx].item() for y_hat in y_hat_list]
-        y_pred_list = [y_pred[idx].item() for y_pred in y_pred_list]
-
-        plt.figure(figsize=(10, 6))
-        plt.plot(y_true_list, label='y true', marker='', color="g")
-        plt.plot(y_hat_list, label='y rec', marker='', color="b")
-        plt.plot(y_pred_list, label='y pred', marker='', color="r")
-
-        plt.legend()
-        plt.title('Comparison of y_true, y_hat, and y_pred')
-        plt.xlabel('Date')
-        plt.ylabel('Value')
-
-    def save_fig(self, filename:str):
-        if not filename.endswith(".png"):
-            filename = filename + ".png"
-        plt.savefig(filename)
-        plt.close()
 
 def parse_args():
     parser = argparse.ArgumentParser(description="AttnFactorVAE Eval")
@@ -309,10 +269,9 @@ if __name__ == "__main__":
     logging.getLogger('PIL').setLevel(logging.ERROR)
     logger = LoggerPreparer(name="Eval", 
                             file_level=logging.INFO, 
-                            log_file=os.path.join(args.log_folder, args.log_name)).get_logger()
+                            log_file=os.path.join(args.log_folder, args.log_name)).prepare()
     
     logger.debug(f"Command: {' '.join(sys.argv)}")
-    logger.debug(f"Params: {vars(args)}")
     
     evaluator = AttnFactorVAEEvaluator()
     evaluator.set_logger(logger=logger)

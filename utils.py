@@ -1,8 +1,9 @@
 import os
 import ast
+import logging
 import argparse
 from typing import Tuple, Literal, Union, Optional, List, Dict, Any
-
+import math
 import json
 import toml
 import yaml
@@ -11,6 +12,7 @@ import pandas as pd
 import numpy as np
 import torch
 from safetensors.torch import load_file, save_file
+from matplotlib import pyplot as plt
 
 def str2bool(value:Union[bool, str]):
     if isinstance(value, bool):
@@ -179,3 +181,83 @@ def find_common_root(dirs:str):
         return common_root
     except ValueError:
         raise RuntimeError("No common root directory found.")
+
+class MeanVarianceAccumulator:
+    def __init__(self):
+        self._n = 0        # 计数器
+        self._mean = 0.0   # 均值
+        self._m2 = 0.0     # 用于计算方差的中间量
+
+    def accumulate(self, x):
+        # 更新计数
+        self._n += 1
+
+        # 计算新的均值
+        delta = x - self._mean
+        self._mean += delta / self._n
+
+        # 更新M2，用于方差计算
+        delta2 = x - self._mean
+        self._m2 += delta * delta2
+
+    def var(self, ddof:int=0):
+        if self._n < 2:
+            return float('nan')  # 当样本数小于2时，方差无定义
+        return self._m2 / (self._n - ddof)  # 使用无偏估计
+    
+    def std(self, ddof:int=0):
+        return math.sqrt(self.var(ddof=ddof))
+
+    def mean(self):
+        return self._mean
+    
+    def __enter__(self):
+        """进入上下文时，初始化/重置计算"""
+        self._n = 0
+        self._mean = 0.0
+        self._m2 = 0.0
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """离开上下文时存储最终的均值和方差"""
+        pass
+
+class Plotter:
+    def __init__(self) -> None:
+        self.logger:logging.Logger = logging
+
+    def set_logger(self, logger:logging.Logger):
+        if not logger:
+            logger = logging
+        self.logger = logger
+    
+    def plot_score(self, pred_scores:List[float], metric:str):
+        plt.figure(figsize=(10, 6))
+        plt.plot(pred_scores, marker='', color="b")
+        plt.title(f'{metric} Scores')
+        plt.xlabel('Date')
+        plt.ylabel('Score')
+    
+    def plot_pred_sample(self, y_true_list:List[float], y_pred_list:List[float], y_hat_list:Optional[List[float]]=None, idx=0):
+        y_true_list = [y_true[idx].item() for y_true in y_true_list]
+        y_pred_list = [y_pred[idx].item() for y_pred in y_pred_list]
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(y_true_list, label='y true', marker='', color="g")
+        plt.plot(y_pred_list, label='y pred', marker='', color="r")
+
+        if y_hat_list:
+            y_hat_list = [y_hat[idx].item() for y_hat in y_hat_list]
+            plt.plot(y_hat_list, label='y hat', marker='', color="b")
+
+        plt.legend()
+        plt.title('Comparison of y_true and y_pred')
+        plt.xlabel('Date')
+        plt.ylabel('Value')
+
+    def save_fig(self, filename:str):
+        if not filename.endswith(".png"):
+            filename = filename + ".png"
+        plt.savefig(filename)
+        plt.close()
+    

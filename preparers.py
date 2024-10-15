@@ -190,17 +190,17 @@ class Model_AttnFactorVAE_Preparer(Model_Preparer):
             checkpoint_config = utils.read_configs(os.path.join(checkpoint_folder, "config.json"))
             model_type = checkpoint_config["Model"]["type"]
             if model_type == "AttnFactorVAE":
-                self.logger.info("Loading AttnFactorVAE weights...")
+                self.logger.info("Load AttnFactorVAE weights.")
                 utils.load_checkpoint(model, checkpoint_path)
             elif model_type == "FactorVAE":
-                self.logger.info("Loading encoder, decoder, and predictor weights from FactorVAE model...")
+                self.logger.info("Load encoder, decoder, and predictor weights from FactorVAE model.")
                 utils.check_attr_dict_match(self, checkpoint_config["Model"], names=["hidden_size", "latent_size"])
                 transfer = Model_WeightTransfer()
                 transfer.set_logger(logger=self.logger)
                 transfer.load_state_dict(checkpoint_path)
                 transfer.fvae2afvae(dest=model)
             elif model_type == "AttnRet":
-                self.logger.info("Loading attn_feature_extractor weights from the AttnRet model...")
+                self.logger.info("Load attn_feature_extractor weights from the AttnRet model.")
                 utils.check_attr_dict_match(self, 
                                             checkpoint_config["Model"], 
                                             names=["fundamental_feature_size", 
@@ -218,7 +218,7 @@ class Model_AttnFactorVAE_Preparer(Model_Preparer):
             self.logger.critical(f"No configuration files found in the checkpoint folder `{checkpoint_folder}`. Try loading weights...")
             try:
                 utils.load_checkpoint(model, checkpoint_path)
-                self.logger.info("Loading weight successfully.")
+                self.logger.info("Load weights successfully.")
             except Exception as e:
                 self.logger.warning("Failed to load weight. Default randomly initialized weights will be used.")
     
@@ -303,10 +303,10 @@ class Model_FactorVAE_Preparer(Model_Preparer):
             checkpoint_config = utils.read_configs(os.path.join(checkpoint_folder, "config.json"))
             model_type = checkpoint_config["Model"]["type"]
             if model_type == "FactorVAE":
-                self.logger.info("Loading FactorVAE weights...")
+                self.logger.info("Load FactorVAE weights.")
                 utils.load_checkpoint(model, checkpoint_path)
             elif model_type == "AttnFactorVAE":
-                self.logger.info("Loading encoder, decoder, and predictor weights from the AttnFactorVAE model...")
+                self.logger.info("Load encoder, decoder, and predictor weights from the AttnFactorVAE model.")
                 utils.check_attr_dict_match(self, checkpoint_config["Model"], names=["hidden_size", "latent_size"])
                 transfer = Model_WeightTransfer()
                 transfer.set_logger(logger=self.logger)
@@ -318,7 +318,7 @@ class Model_FactorVAE_Preparer(Model_Preparer):
             self.logger.critical(f"No configuration files found in the checkpoint folder `{checkpoint_folder}`. Try loading weights...")
             try:
                 utils.load_checkpoint(model, checkpoint_path)
-                self.logger.info("Loading weight successfully.")
+                self.logger.info("Load weights successfully.")
             except Exception as e:
                 self.logger.warning("Failed to load weight. Default randomly initialized weights will be used.")
 
@@ -397,10 +397,10 @@ class Model_AttnRet_Preparer(Model_Preparer):
             checkpoint_config = utils.read_configs(os.path.join(checkpoint_folder, "config.json"))
             model_type = checkpoint_config["Model"]["type"]
             if model_type == "AttnRet":
-                self.logger.info("Loading AttnRet weights...")
+                self.logger.info("Load AttnRet weights.")
                 utils.load_checkpoint(model, checkpoint_path)
             elif model_type == "AttnFactorVAE":
-                self.logger.info("Loading attn_feature_extractor weights from the AttnFactorVAE model...")
+                self.logger.info("Load attn_feature_extractor weights from the AttnFactorVAE model.")
                 utils.check_attr_dict_match(self, 
                                             checkpoint_config["Model"], 
                                             names=["fundamental_feature_size", 
@@ -417,7 +417,7 @@ class Model_AttnRet_Preparer(Model_Preparer):
             self.logger.critical(f"No configuration files found in the checkpoint folder `{checkpoint_folder}`. Try loading weights...")
             try:
                 utils.load_checkpoint(model, checkpoint_path)
-                self.logger.info("Loading weight successfully.")
+                self.logger.info("Load weights successfully.")
             except Exception as e:
                 self.logger.warning("Failed to load weight. Default randomly initialized weights will be used.")
 
@@ -620,5 +620,5 @@ class LoggerPreparer:
         self.logger.addHandler(console_handler)
         self.logger.addHandler(file_handler)
 
-    def get_logger(self) -> Logger:
+    def prepare(self) -> Logger:
         return self.logger
