@@ -5,13 +5,14 @@ import argparse
 from typing import Tuple, Literal, Union, Optional, List, Dict, Any
 import math
 import json
+import safetensors.torch
 import toml
 import yaml
 
 import pandas as pd
 import numpy as np
 import torch
-from safetensors.torch import load_file, save_file
+import safetensors
 from matplotlib import pyplot as plt
 
 def str2bool(value:Union[bool, str]):
@@ -103,7 +104,7 @@ def save_dataframe(df:pd.DataFrame, path:str, format:Literal["csv", "pkl", "parq
     elif format == "feather":
         df.to_feather(path)
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f"Unsupported file format `{format}`. The supported file formats include `csv`, `pkl`, `parquet` and `feather`.")
 
 def load_dataframe(path:str, format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> pd.DataFrame:
     if format == "csv":
@@ -115,7 +116,7 @@ def load_dataframe(path:str, format:Literal["csv", "pkl", "parquet", "feather"]=
     elif format == "feather":
         df = pd.read_feather(path)
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f"Unsupported file format `{format}`. The supported file formats include `csv`, `pkl`, `parquet` and `feather`.")
     return df
 
 def save_checkpoint(model:torch.nn.Module, save_folder:str, save_name:str, save_format:Literal[".pt",".safetensors"]=".pt"):
@@ -123,15 +124,23 @@ def save_checkpoint(model:torch.nn.Module, save_folder:str, save_name:str, save_
     if save_format == ".pt":
         torch.save(model.state_dict(), save_path)
     elif save_format == ".safetensors":
-        save_file(model.state_dict(), save_path)
+        safetensors.torch.save_file(model.state_dict(), save_path)
     else:
         raise ValueError(f"Unrecognized file format`{save_format}`")
+
+def load(path:str):
+    if path.endswith(".pt"):
+        return torch.load(f=path, weights_only=False)
+    elif path.endswith(".safetensors"):
+        return safetensors.torch.load_file(filename=path)
+    else:
+        raise ValueError(f"Unrecognized file `{path}`")
 
 def load_checkpoint(model:torch.nn.Module, checkpoint_path:str):
     if checkpoint_path.endswith(".pt"):
         model.load_state_dict(torch.load(checkpoint_path, weights_only=False))
     elif checkpoint_path.endswith(".safetensors"):
-        model.load_state_dict(load_file(checkpoint_path))
+        model.load_state_dict(safetensors.torch.load_file(checkpoint_path))
     else:
         raise ValueError(f"Unrecognized model weights file `{checkpoint_path}`")
 

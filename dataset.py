@@ -344,7 +344,7 @@ class DataLoader_Preparer(Preparer):
                          num_batches_per_epoch=args.num_batches_per_epoch)
         
     def prepare(self):
-        datasets:Dict[str, "StockSequenceDataset"] = torch.load(self.dataset_path, weights_only=False)
+        datasets:Dict[str, Union[StockSequenceDataset, StockSequenceCatDataset]] = utils.load(self.dataset_path)
         train_set = datasets["train"]
         val_set = datasets["val"]
         test_set = datasets["test"]

@@ -99,16 +99,16 @@ class FeatureExtractor(nn.Module):
                           dropout=gru_dropout)
         
     def forward(self, features):
-        print(check(features))
-        print(features[0])
+        #print(check(features))
+        #print(features[0])
         features = self.norm_layer(features)
-        print(features[0])
-        print(torch.any(torch.isnan(features), dim=[0,2]), torch.any(torch.isinf(features), dim=[0,2]))
-        print(check(features))
+        #print(features[0])
+        #print(torch.any(torch.isnan(features), dim=[0,2]), torch.any(torch.isinf(features), dim=[0,2]))
+        #print(check(features))
         features = self.proj_layer(features)
-        print(check(features))
+        #print(check(features))
         output, hidden_state = self.gru(features)
-        print(check(output))
+        #print(check(output))
         return output[-1]  # -> (batch_size, hidden_size)
 
 
@@ -405,13 +405,13 @@ class FactorVAE(nn.Module):
                                      std_activ=std_activ)
     def forward(self, features, y):
         e = self.feature_extractor(features)
-        print("e", check(e))
+        #print("e", check(e))
         mu_posterior, sigma_posterior = self.encoder(y, e)
-        print(check(mu_posterior), check(sigma_posterior))
+        #print(check(mu_posterior), check(sigma_posterior))
         mu_prior, sigma_prior = self.predictor(e)
-        print(check(mu_prior), check(sigma_prior))
+        #print(check(mu_prior), check(sigma_prior))
         y_hat = self.decoder(e, mu_posterior, sigma_posterior)
-        print(check(y_hat))
+        #print(check(y_hat))
         return y_hat, mu_posterior, sigma_posterior, mu_prior, sigma_prior
     
     def predict(self, features):

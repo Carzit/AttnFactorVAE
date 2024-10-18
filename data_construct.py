@@ -12,6 +12,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from preparers import LoggerPreparer
+import utils
+
 # 定义一个FileData类，包含path和dataframe两个属性。作为基类，描述每个数据文件。
 @dataclass
 class FileData:
@@ -29,31 +32,6 @@ class LabelData(FileData):
     codes: List[str]
     dates: List[str]
     label: str
-
-def save_dataframe(df:pd.DataFrame, path:str, format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> None:
-    if format == "csv":
-        df.to_csv(path)
-    elif format ==  "pkl":
-        df.to_pickle(path)
-    elif format == "parquet":
-        df.to_parquet(path)
-    elif format == "feather":
-        df.to_feather(path)
-    else:
-        raise NotImplementedError()
-
-def load_dataframe(path:str, format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> pd.DataFrame:
-    if format == "csv":
-        df = pd.read_csv(path, index_col=0)
-    elif format ==  "pkl":
-        df = pd.read_pickle(path)
-    elif format == "parquet":
-        df = pd.read_parquet(path)
-    elif format == "feather":
-        df = pd.read_feather(path)
-    else:
-        raise NotImplementedError()
-    return df
 
 class Processor:
     def __init__(self) -> None:
@@ -79,7 +57,7 @@ class FactorProcessor(Processor):
     def read_and_process_file(self, 
                               file_path:str, 
                               file_format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> FileData:
-        df = load_dataframe(path=file_path, format=file_format)
+        df = utils.load_dataframe(path=file_path, format=file_format)
         return FileData(path=file_path, dataframe=df)
     
     def load_data(self, file_format:str) -> None:
@@ -133,7 +111,7 @@ class FactorProcessor(Processor):
         logging.debug("merging data...")
         for date in tqdm(self.common_dates):
             merged_df = self.merge_date(date)
-            save_dataframe(df=merged_df,
+            utils.save_dataframe(df=merged_df,
                            path=os.path.join(save_folder, f"{date}.{save_format}"),
                            format=save_format)
 
@@ -142,7 +120,7 @@ class QuantityPriceFeature_FactorProcessor(FactorProcessor):
         super().__init__(folder_path)
         
     def read_and_process_file(self, file_path:str, file_format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> FactorData:
-        df = load_dataframe(path=file_path, format=file_format)
+        df = utils.load_dataframe(path=file_path, format=file_format)
         codes = df.columns.tolist()
         dates = df.index.tolist()
         factor_name = os.path.basename(file_path).replace("OHO_", "").replace(".pkl", "")
@@ -159,7 +137,7 @@ class FundamentalFeature_FactorProcessor(FactorProcessor):
         super().__init__(folder_path)
         
     def read_and_process_file(self, file_path:str, file_format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> FactorData:
-        df = load_dataframe(path=file_path, format=file_format)
+        df = utils.load_dataframe(path=file_path, format=file_format)
         codes = df.columns.tolist()
         dates = df.index.tolist()
         factor_name = os.path.basename(file_path).replace(".pkl", "")
@@ -176,7 +154,7 @@ class LabelProcessor(FactorProcessor):
         super().__init__(folder_path)
         
     def read_and_process_file(self, file_path:str, file_format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> FactorData:
-        df = load_dataframe(path=file_path, format=file_format)
+        df = utils.load_dataframe(path=file_path, format=file_format)
         codes = df.columns.tolist()
         dates = df.index.tolist()
         label_name = os.path.basename(file_path).replace("label_", "").replace(".pkl", "")
@@ -216,13 +194,13 @@ class ProcessorAlignment:
 def parse_args():
     parser = argparse.ArgumentParser(description="Data Preprocessor.")
 
-    parser.add_argument("--log_folder", type=str, default=os.curdir, help="Path of folder for log file. Default `.`")
-    parser.add_argument("--log_name", type=str, default="data_construct.log", help="Name of log file. Default `log.txt`")
+    parser.add_argument("--log_folder", type=str, default="log", help="Path of folder for log file. Default `log`")
+    parser.add_argument("--log_name", type=str, default="data_construct.log", help="Name of log file. Default `data_construct.log`")
 
-    parser.add_argument("--quantity_price_factor_folder", type=str, required=True, help="Path of folder for Quantity-Price Factor pickle files")
-    parser.add_argument("--fundamental_factor_folder", type=str, required=True, help="Path of folder for Fundamental Factor pickle files")
-    parser.add_argument("--label_folder", type=str, required=True, help="Path of folder for label pickle files")
-    parser.add_argument("--save_folder", type=str, required=True, help="Path of folder for Processor to save processed result in subdir `alpha` and `label`")
+    parser.add_argument("-q", "--quantity_price_factor_folder", type=str, required=True, help="Path of folder for Quantity-Price Factor pickle files")
+    parser.add_argument("-f", "--fundamental_factor_folder", type=str, required=True, help="Path of folder for Fundamental Factor pickle files")
+    parser.add_argument("-l", "--label_folder", type=str, required=True, help="Path of folder for label pickle files")
+    parser.add_argument("-s", "--save_folder", type=str, required=True, help="Path of folder for Processor to save processed result in subdir `alpha` and `label`")
     parser.add_argument("--read_format", type=str, default="pkl", help="File format to read, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
     parser.add_argument("--save_format", type=str, default="pkl", help="File format to save, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
 
@@ -236,14 +214,13 @@ if __name__ == "__main__":
     log_name = args.log_name
     if not os.path.exists(log_folder):
         os.makedirs(log_folder)
-    
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s - [%(levelname)s] : %(message)s',
-        handlers=[logging.FileHandler(os.path.join(log_folder, log_name)), logging.StreamHandler()])
 
-    logging.debug(f"Command: {' '.join(sys.argv)}")
-    logging.debug(f"Params: {vars(args)}")
+    logger = LoggerPreparer(name="Preprocess", 
+                            file_level=logging.INFO, 
+                            log_file=os.path.join(args.log_folder, args.log_name)).prepare()
+
+    logger.debug(f"Command: {' '.join(sys.argv)}")
+
     if not os.path.exists(args.save_folder):    
         os.makedirs(args.save_folder)
         os.makedirs(os.path.join(args.save_folder, "quantity_price_feature"))
@@ -254,16 +231,16 @@ if __name__ == "__main__":
     fundamental_processor = FundamentalFeature_FactorProcessor(args.fundamental_factor_folder)
     label_processor = LabelProcessor(args.label_folder)
 
-    logging.debug("Loading Quantity-Price Factor Data...")
+    logger.info("Loading Quantity-Price Factor Data...")
     quantity_price_processor.load_data(file_format=args.read_format)
     
-    logging.debug("Loading Fundamental Factor data...")
+    logger.info("Loading Fundamental Factor data...")
     fundamental_processor.load_data(file_format=args.read_format)
 
-    logging.debug("Loading Label Data...")
+    logger.info("Loading Label Data...")
     label_processor.load_data(file_format=args.read_format)
 
-    logging.debug("Doing Data Alignment...")
+    logger.info("Doing Data Alignment...")
     date_aligner = ProcessorAlignment([quantity_price_processor, fundamental_processor, label_processor], 
                                       "common_dates",
                                       save_folder=args.save_folder)
@@ -277,23 +254,19 @@ if __name__ == "__main__":
     fundamental_processor.common_filter()
     label_processor.common_filter()
 
-    logging.debug("Doing Quantity-Price Factor Data Split...")
+    logger.info("Doing Quantity-Price Factor Data Split...")
     quantity_price_processor.process(save_folder=os.path.join(args.save_folder, "quantity_price_feature"), 
                                      save_format=args.save_format)
-    logging.debug(f"Quantity-Price Date Data Saved to `{os.path.join(args.save_folder, 'quantity_price_feature')}`")
+    logger.info(f"Quantity-Price Date Data Saved to `{os.path.join(args.save_folder, 'quantity_price_feature')}`")
     
-    logging.debug("Doing Fundamental Factor Data Split...")
+    logger.info("Doing Fundamental Factor Data Split...")
     fundamental_processor.process(save_folder=os.path.join(args.save_folder, "fundamental_feature"), 
                                      save_format=args.save_format)
-    logging.debug(f"Fundamental Date Data Saved to `{os.path.join(args.save_folder, 'fundamental_feature')}`")
+    logger.info(f"Fundamental Date Data Saved to `{os.path.join(args.save_folder, 'fundamental_feature')}`")
     
-    logging.debug("Doing Label Data Split...")
+    logger.info("Doing Label Data Split...")
     label_processor.process(save_folder=os.path.join(args.save_folder, "label"), 
                             save_format=args.save_format)
-    logging.debug(f"Label Date Data Saved to `{os.path.join(args.save_folder, 'label')}`")
+    logger.info(f"Label Date Data Saved to `{os.path.join(args.save_folder, 'label')}`")
     
-    logging.debug("Data Construct Accomplished")
-
-# python data_construct.py --alpha_folder "data\Alpha101" --label_folder "data\label" --save_folder "data\preprocess" --merge_mode "date" --log_folder "log"
-
-# python data_construct.py --quantity_price_factor_folder "data\raw\Alpha101" --fundamental_factor_folder "data\raw\Fundamental" --label_folder "data\raw\label" --save_folder "data\preprocess" --log_folder "log" --read_format "pkl" --save_format "pkl"
+    logger.info("Data Construct Accomplished")

@@ -1,0 +1,28 @@
+{
+    "Model": {
+        "type": "FactorVAE",
+        "feature_size": 132,
+        "num_gru_layers": 4,
+        "gru_hidden_size": 32,
+        "hidden_size": 100,
+        "latent_size": 48,
+        "gru_dropout": 0.1,
+        "std_activation": "softplus"
+    },
+    "Dataset": {
+        "dataset_path": "data\\dataset_cat.pt",
+        "subset": "test",
+        "num_workers": 4,
+        "mode": "loose_drop",
+        "seq_len": 20
+    },
+    "Eval": {
+        "device": "cuda",
+        "dtype": "FP32",
+        "metric": "IC",
+        "checkpoints": ["model\\AttnFactorVAE\\test_softmax\\AttnFactorVAE_epoch10.pt"],
+        "checkpoint_folder": "model\\AttnFactorVAE\\test_softmax",
+        "save_folder": "eval\\AttnFactorVAE\\test_softmax",
+        "plot_index": [0]
+    }
+}

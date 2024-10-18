@@ -51,7 +51,7 @@
         "sample_per_batch": 1,
         "report_per_epoch": 1,
         "save_per_epoch": 1,
-        "save_folder": "model\\AttnFactorVAE\\test_softmax2",
+        "save_folder": "model\\FactorVAE\\test",
         "save_name": "AttnFactorVAE",
         "save_format": ".pt"
     }
