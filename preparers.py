@@ -597,12 +597,15 @@ class Optimizer_Preparer(Preparer):
     
 class LoggerPreparer:
     def __init__(self, 
-                 name: str = 'app_logger', 
+                 name: str = 'logger', 
                  console_level=logging.DEBUG, 
                  file_level=logging.DEBUG,
-                 log_file: str = 'app.log', 
+                 log_file: str = 'unnamed.log', 
                  max_bytes: int = 1e6, 
                  backup_count: int = 5):
+        log_folder = os.path.dirname(log_file)
+        if log_folder:
+            os.makedirs(log_folder, exist_ok=True)
 
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.DEBUG)

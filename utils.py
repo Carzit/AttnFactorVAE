@@ -3,9 +3,11 @@ import ast
 import logging
 import argparse
 from typing import Tuple, Literal, Union, Optional, List, Dict, Any
-import math
-import json
 import safetensors.torch
+
+import math
+import pickle
+import json
 import toml
 import yaml
 
@@ -133,6 +135,21 @@ def load(path:str):
         return torch.load(f=path, weights_only=False)
     elif path.endswith(".safetensors"):
         return safetensors.torch.load_file(filename=path)
+    elif path.endswith(".pkl"):
+        with open(path, "r") as f:
+            r = pickle.load(f)
+        return r
+    else:
+        raise ValueError(f"Unrecognized file `{path}`")
+    
+def save(obj:Dict[str, torch.Tensor], path:str):
+    if path.endswith(".pt"):
+        torch.save(obj=obj, f=path)
+    elif path.endswith(".safetensors"):
+        safetensors.torch.save_file(tensors=obj, filename=path)
+    elif path.endswith(".pkl"):
+        with open(path, "w") as f:
+            pickle.dump(f)
     else:
         raise ValueError(f"Unrecognized file `{path}`")
 

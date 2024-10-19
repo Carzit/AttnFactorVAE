@@ -194,8 +194,7 @@ class ProcessorAlignment:
 def parse_args():
     parser = argparse.ArgumentParser(description="Data Preprocessor.")
 
-    parser.add_argument("--log_folder", type=str, default="log", help="Path of folder for log file. Default `log`")
-    parser.add_argument("--log_name", type=str, default="data_construct.log", help="Name of log file. Default `data_construct.log`")
+    parser.add_argument("--log_path", type=str, default="log/data_construct.log", help="Path of log file. Default `log/data_construct.log`")
 
     parser.add_argument("-q", "--quantity_price_factor_folder", type=str, required=True, help="Path of folder for Quantity-Price Factor pickle files")
     parser.add_argument("-f", "--fundamental_factor_folder", type=str, required=True, help="Path of folder for Fundamental Factor pickle files")
@@ -210,14 +209,9 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    log_folder = args.log_folder
-    log_name = args.log_name
-    if not os.path.exists(log_folder):
-        os.makedirs(log_folder)
-
     logger = LoggerPreparer(name="Preprocess", 
                             file_level=logging.INFO, 
-                            log_file=os.path.join(args.log_folder, args.log_name)).prepare()
+                            log_file=args.log_path).prepare()
 
     logger.debug(f"Command: {' '.join(sys.argv)}")
 

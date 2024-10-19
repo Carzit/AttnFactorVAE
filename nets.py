@@ -34,6 +34,7 @@ def multiLinear(input_size:int,
             layers.append(nn.Linear(nodes[-1], output_size))
             return nn.Sequential(*layers)
 
+
 class Exp(nn.Module):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -82,6 +83,7 @@ class AttnFeatureExtractor(nn.Module):
 
         return residual  # (batch_size, hidden_size)
 
+
 class FeatureExtractor(nn.Module):
     def __init__(self, 
                  feature_size,
@@ -112,31 +114,6 @@ class FeatureExtractor(nn.Module):
         return output[-1]  # -> (batch_size, hidden_size)
 
 
-class AttnRet(nn.Module):
-    def __init__(self, 
-                 fundamental_feature_size, 
-                 quantity_price_feature_size,
-                 num_gru_layers, 
-                 gru_hidden_size,
-                 gru_drop_out = 0.1,
-                 num_fc_layers = 2) -> None:
-        super().__init__()
-        self.feature_extractor = AttnFeatureExtractor(fundamental_feature_size=fundamental_feature_size,
-                                                      quantity_price_feature_size=quantity_price_feature_size,
-                                                      hidden_size=gru_hidden_size,
-                                                      num_gru_layer=num_gru_layers,
-                                                      gru_dropout=gru_drop_out)
-        self.fc_layers = multiLinear(input_size=gru_hidden_size,
-                                    output_size=1,
-                                    num_layers=num_fc_layers)
-        
-    def forward(self, fundamental_features, quantity_price_features):
-        residual = self.feature_extractor(fundamental_features, quantity_price_features)
-        out = self.fc_layers(residual)
-        out = out.squeeze()
-        return out
-    
-
 class PortfolioLayer(nn.Module):
     """
     Because the number of individual stocks in cross-section is large and varies with time, 
@@ -160,6 +137,7 @@ class PortfolioLayer(nn.Module):
         a_p = F.softmax(torch.matmul(self.w_p, e.T) + self.b_p, dim=-1) #-> [num_portfolios, num_stocks]
         y_p = torch.matmul(a_p, y) #-> [num_portfolios]
         return y_p
+
 
 class FactorEncoder(nn.Module):
     """
@@ -207,6 +185,7 @@ class FactorEncoder(nn.Module):
         sigma_z = self.map_sigma_z_layer(y_p) #-> [latent_size(num_factors)]
         return mu_z, sigma_z
 
+
 class AlphaLayer(nn.Module):
     """
     Alpha layer outputs idiosyncratic returns α from the latent features e. 
@@ -237,6 +216,7 @@ class AlphaLayer(nn.Module):
         sigma_alpha = self.alpha_sigma_layer(h_alpha).squeeze() #->[num_stocks]
         return mu_alpha, sigma_alpha
     
+
 class BetaLayer(nn.Module):
     """
     Beta layer calculates factor exposure β ∈ R^{N*K} from the latent features e by linear mapping. Formally,
@@ -285,6 +265,7 @@ class FactorDecoder(nn.Module):
         y = mean + std * epsilon
         return y
 
+
 class SingleHeadAttention(nn.Module):
     def __init__(self, input_size, hidden_size):
         super(SingleHeadAttention, self).__init__()
@@ -301,6 +282,7 @@ class SingleHeadAttention(nn.Module):
         v = self.w_value(e)  # -> [num_stocks, hidden_size]
         h_att = torch.matmul(attn_weights, v)  # -> [hidden_size]
         return h_att
+
 
 class MultiHeadAttention(nn.Module):
     """
@@ -327,6 +309,7 @@ class MultiHeadAttention(nn.Module):
         h_muti = torch.stack(head_outputs, dim=-2) # -> [num_heads, hidden_size]
         return h_muti #->(K, H)
     
+
 class DistributionNetwork(nn.Module):
     """
     And then we use a distribution network πprior to predict the mean µ_prior and the std σ_prior of prior factors z_prior.
@@ -350,6 +333,7 @@ class DistributionNetwork(nn.Module):
         sigma_prior = self.sigma_layer(h_multi).squeeze() #->[num_factors]
         return mu_prior, sigma_prior
 
+
 class FactorPredictor(nn.Module):
     """
     Factor predictor extracts prior factors z_prior from the stock latent features e:
@@ -370,6 +354,7 @@ class FactorPredictor(nn.Module):
         h_multi = self.multihead_attention(e)
         mu_prior, sigma_prior = self.distribution_network(h_multi)
         return mu_prior, sigma_prior
+
 
 class FactorVAE(nn.Module):
     """
@@ -403,6 +388,7 @@ class FactorVAE(nn.Module):
                                      hidden_size=hidden_size,
                                      latent_size=latent_size,
                                      std_activ=std_activ)
+        
     def forward(self, features, y):
         e = self.feature_extractor(features)
         #print("e", check(e))
@@ -420,6 +406,31 @@ class FactorVAE(nn.Module):
         y_pred = self.decoder(e, mu_prior, sigma_prior)
         return y_pred, mu_prior, sigma_prior    
 
+
+class AttnRet(nn.Module):
+    def __init__(self, 
+                 fundamental_feature_size, 
+                 quantity_price_feature_size,
+                 num_gru_layers, 
+                 gru_hidden_size,
+                 gru_drop_out = 0.1,
+                 num_fc_layers = 2) -> None:
+        super().__init__()
+        self.feature_extractor = AttnFeatureExtractor(fundamental_feature_size=fundamental_feature_size,
+                                                      quantity_price_feature_size=quantity_price_feature_size,
+                                                      hidden_size=gru_hidden_size,
+                                                      num_gru_layer=num_gru_layers,
+                                                      gru_dropout=gru_drop_out)
+        self.fc_layers = multiLinear(input_size=gru_hidden_size,
+                                    output_size=1,
+                                    num_layers=num_fc_layers)
+        
+    def forward(self, fundamental_features, quantity_price_features):
+        residual = self.feature_extractor(fundamental_features, quantity_price_features)
+        out = self.fc_layers(residual)
+        out = out.squeeze()
+        return out
+    
 
 class AttnFactorVAE(nn.Module):
     """
@@ -452,6 +463,7 @@ class AttnFactorVAE(nn.Module):
                                      hidden_size=hidden_size,
                                      latent_size=latent_size,
                                      std_activ=std_activ)
+        
     def forward(self, fundamental_feature, quantity_price_feature, y):
         e = self.feature_extractor(fundamental_feature, quantity_price_feature)
         mu_posterior, sigma_posterior = self.encoder(y, e)

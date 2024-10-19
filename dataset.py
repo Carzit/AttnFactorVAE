@@ -376,8 +376,7 @@ class DataLoader_Preparer(Preparer):
 def parse_args():
     parser = argparse.ArgumentParser(description="Data acquisition and dataset generation.")
 
-    parser.add_argument("--log_folder", type=str, default="log", help="Path of folder for log file. Default `.`")
-    parser.add_argument("--log_name", type=str, default="dataset.log", help="Name of log file. Default `log.txt`")
+    parser.add_argument("--log_path", type=str, default="log/dataset.log", help="Path of log file. Default `log/dataset.log`")
 
     parser.add_argument("--quantity_price_feature_dir", type=str, default=None, help="Path of folder for quantity-price feature data files")
     parser.add_argument("--fundamental_feature_dir", type=str, default=None, help="Path of folder for fundamental feature data files")
@@ -404,8 +403,9 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    os.makedirs(args.log_folder, exist_ok=True)
-    logger = LoggerPreparer(name="dataset", log_file=os.path.join(args.log_folder, args.log_name)).get_logger()
+    logger = LoggerPreparer(name="Dataset", 
+                            file_level=logging.INFO, 
+                            log_file=args.log_path).prepare()
     
     if args.data_dir:
         args.quantity_price_feature_dir = os.path.join(args.data_dir, "quantity_price_feature")
@@ -413,14 +413,13 @@ if __name__ == "__main__":
         args.label_dir = os.path.join(args.data_dir, "label")
 
     logger.debug(f"Command: {' '.join(sys.argv)}")
-    logger.debug(f"Params: {vars(args)}")
 
     dataset = StockDataset(quantity_price_feature_dir=args.quantity_price_feature_dir,
                            fundamental_feature_dir=args.fundamental_feature_dir,
                            label_dir=args.label_dir,
                            label_name=args.label_name, 
                            format=args.file_format,
-                           dtype=args.dtype)# len 2744
+                           dtype=args.dtype)
 
     train_set, val_set, test_set = dataset.serial_split(ratios=args.split_ratio, mask=args.mask_len)
     if args.cat:
@@ -431,8 +430,6 @@ if __name__ == "__main__":
         train_set = StockSequenceDataset(train_set, seq_len=args.train_seq_len, mode=args.mode)
         val_set = StockSequenceDataset(val_set, seq_len=args.val_seq_len or args.train_seq_len, mode=args.mode)
         test_set = StockSequenceDataset(test_set, seq_len=args.test_seq_len or args.train_seq_len, mode=args.mode)
-    
-
     
     torch.save({"train": train_set, "val": val_set, "test": test_set}, args.save_path)
     logger.debug(f"Dataset saved to {args.save_path}")

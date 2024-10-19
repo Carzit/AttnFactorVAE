@@ -181,9 +181,9 @@ class FactorVAEEvaluator:
                         continue
                     feature = feature.to(device=self.device)
                     label = label.to(device=self.device)
-                    y_pred, *_ = model(feature, label)
-                    y_hat, *_ = model.predict(feature,)
-                    score = self.pred_eval_func(y_hat, label)
+                    y_hat, *_ = model(feature, label)
+                    y_pred, *_ = model.predict(feature,)
+                    score = self.pred_eval_func(y_pred, label)
 
                     accumulator.accumulate(score.item())
                     self.pred_scores.append(score.item())
@@ -220,9 +220,8 @@ class FactorVAEEvaluator:
 
 def parse_args():
     parser = argparse.ArgumentParser(description="FactorVAE Eval")
-
-    parser.add_argument("--log_folder", type=str, default="log", help="Path of folder for log file. Default `.`")
-    parser.add_argument("--log_name", type=str, default="FactorVAE_Eval.log", help="Name of log file. Default `log.txt`")
+    
+    parser.add_argument("--log_path", type=str, default="log/eval_FactorVAE.log", help="Path of log file. Default `log/eval_FactorVAE.log`")
 
     parser.add_argument("--load_configs", type=str, default=None, help="Path of config file to load. Optional")
     parser.add_argument("--save_configs", type=str, default=None, help="Path of config file to save. Default saved to save_folder as `config.toml`")
@@ -253,8 +252,6 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    
-    os.makedirs(args.log_folder, exist_ok=True)
 
     os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
     os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -262,7 +259,7 @@ if __name__ == "__main__":
     logging.getLogger('PIL').setLevel(logging.ERROR)
     logger = LoggerPreparer(name="Eval", 
                             file_level=logging.INFO, 
-                            log_file=os.path.join(args.log_folder, args.log_name)).prepare()
+                            log_file=args.log_path).prepare()
     
     logger.debug(f"Command: {' '.join(sys.argv)}")
     

@@ -37,7 +37,7 @@
         "sample_per_batch": -1,
         "report_per_epoch": 1,
         "save_per_epoch": 1,
-        "save_folder": "model\\AttnFRet\\test",
+        "save_folder": "model\\AttnRet\\test",
         "save_name": "AttnRet",
         "save_format": ".pt"
     }

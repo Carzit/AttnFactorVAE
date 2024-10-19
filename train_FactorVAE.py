@@ -325,8 +325,7 @@ class FactorVAETrainer:
 def get_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="AttnFactorVAE Training.")
 
-    parser.add_argument("--log_folder", type=str, default="log", help="Path of folder for log file. Default `.`")
-    parser.add_argument("--log_name", type=str, default="FactorVAE_Train.log", help="Name of log file. Default `log.txt`")
+    parser.add_argument("--log_path", type=str, default="log/train_FactorVAE.log", help="Path of log file. Default `log/train_FactorVAE.log`")
     
     parser.add_argument("--load_configs", type=str, default=None, help="Path of config file to load. Optional")
     parser.add_argument("--save_configs", type=str, default=None, help="Path of config file to save. Default saved to save_folder as `config.toml`")
@@ -421,10 +420,9 @@ if __name__ == "__main__":
 
     logger = LoggerPreparer(name="Train", 
                             file_level=logging.INFO, 
-                            log_file=os.path.join(args.log_folder, args.log_name)).prepare()
+                            log_file=args.log_path).prepare()
     
     logger.debug(f"Command: {' '.join(sys.argv)}")
-    logger.debug(f"Params: {vars(args)}")
 
     trainer = FactorVAETrainer()
     trainer.set_logger(logger=logger)
