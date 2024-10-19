@@ -285,7 +285,7 @@ def get_parser() -> argparse.Namespace:
     parser.add_argument("--gru_dropout", type=float, default=0.1, help="Dropout probs in gru layers. Default 0.1")
     parser.add_argument("--num_fc_layers", type=int, default=4, help="Num of full connected layers in MLP")
 
-    # general optimizer config
+    # optimizer config
     parser.add_argument("--optimizer_type", type=str, default="Lion", choices=["Adam", "AdamW", "Lion", "SGDNesterov", "DAdaptation", "Adafactor"], help="Optimizer for training. Literally `Adam`, `AdamW`, `Lion`, `SGDNesterov`, `DAdaptation` or `Adafactor`. Default `Lion`")
     parser.add_argument("--optimizer_kwargs", type=str, default=None, nargs="+", help="Key arguments for optimizer. e.g. `betas=(0.9, 0.99) weight_decay=0.0 use_triton=False decoupled_weight_decay=False` for optimizer Lion by default")
     parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate for optimizer of AttnFactorVAE. Default 0.001")
@@ -293,24 +293,6 @@ def get_parser() -> argparse.Namespace:
     parser.add_argument("--lr_scheduler_warmup_steps", type=int, default=0, help="Number of steps for the warmup phase in the learning rate scheduler. Default 0")
     parser.add_argument("--lr_scheduler_num_cycles", type=float, default=0.5, help="Number of cycles (for cosine scheduler) or factor in polynomial scheduler. Default 0.5")
     parser.add_argument("--lr_scheduler_power", type=float, default=1.0, help="Power factor for polynomial learning rate scheduler. Default 1.0")
-
-    # vae optimizer config
-    parser.add_argument("--vae_optimizer_type", type=str, default="Lion", choices=["Adam", "AdamW", "Lion", "SGDNesterov", "DAdaptation", "Adafactor"], help="Optimizer for training. Literally `Adam`, `AdamW`, `Lion`, `SGDNesterov`, `DAdaptation` or `Adafactor`. Default `Lion`")
-    parser.add_argument("--vae_optimizer_kwargs", type=str, default=None, nargs="+", help="Key arguments for optimizer. e.g. `betas=(0.9, 0.99) weight_decay=0.0 use_triton=False decoupled_weight_decay=False` for optimizer Lion by default")
-    parser.add_argument("--vae_learning_rate", type=float, default=1e-3, help="Learning rate for optimizer of AttnFactorVAE. Default 0.001")
-    parser.add_argument("--vae_lr_scheduler_type", type=str, default="constant", choices=["constant", "linear", "cosine", "cosine_with_restarts", "polynomial", "adafactor"], help="Learning rate scheduler for optimizer. Literally `constant`, `linear`, `cosine`, `cosine_with_restarts`, `polynomial`, `adafactor`. Default `constant`.")
-    parser.add_argument("--vae_lr_scheduler_warmup_steps", type=int, default=0, help="Number of steps for the warmup phase in the learning rate scheduler. Default 0")
-    parser.add_argument("--vae_lr_scheduler_num_cycles", type=float, default=0.5, help="Number of cycles (for cosine scheduler) or factor in polynomial scheduler. Default 0.5")
-    parser.add_argument("--vae_lr_scheduler_power", type=float, default=1.0, help="Power factor for polynomial learning rate scheduler. Default 1.0")
-
-    # predictor optimizer config
-    parser.add_argument("--predictor_optimizer_type", type=str, default="Lion", choices=["Adam", "AdamW", "Lion", "SGDNesterov", "DAdaptation", "Adafactor"], help="Optimizer for training. Literally `Adam`, `AdamW`, `Lion`, `SGDNesterov`, `DAdaptation` or `Adafactor`. Default `Lion`")
-    parser.add_argument("--predictor_optimizer_kwargs", type=str, default=None, nargs="+", help="Key arguments for optimizer. e.g. `betas=(0.9, 0.99) weight_decay=0.0 use_triton=False decoupled_weight_decay=False` for optimizer Lion by default")
-    parser.add_argument("--predictor_learning_rate", type=float, default=1e-3, help="Learning rate for optimizer of AttnFactorVAE. Default 0.001")
-    parser.add_argument("--predictor_lr_scheduler_type", type=str, default="constant", choices=["constant", "linear", "cosine", "cosine_with_restarts", "polynomial", "adafactor"], help="Learning rate scheduler for optimizer. Literally `constant`, `linear`, `cosine`, `cosine_with_restarts`, `polynomial`, `adafactor`. Default `constant`.")
-    parser.add_argument("--predictor_lr_scheduler_warmup_steps", type=int, default=0, help="Number of steps for the warmup phase in the learning rate scheduler. Default 0")
-    parser.add_argument("--predictor_lr_scheduler_num_cycles", type=float, default=0.5, help="Number of cycles (for cosine scheduler) or factor in polynomial scheduler. Default 0.5")
-    parser.add_argument("--predictor_lr_scheduler_power", type=float, default=1.0, help="Power factor for polynomial learning rate scheduler. Default 1.0")
 
     # loss configs
     parser.add_argument("--gamma", type=float, default=1, help="Gamma for KL Div in Objective Function Loss. Default 1")
@@ -331,29 +313,9 @@ def get_parser() -> argparse.Namespace:
     parser.add_argument("--save_format", type=str, default=".pt", help="File format of model to save, literally `.pt` or `.safetensors`. Default `.pt`")
 
     return parser.parse_args()
+
 if __name__ == "__main__":
     args = get_parser()
-    if args.optimizer_type:
-        args.vae_optimizer_type = args.optimizer_type
-        args.predictor_optimizer_type = args.optimizer_type
-    if args.optimizer_kwargs:
-        args.vae_optimizer_kwargs = args.optimizer_kwargs
-        args.predictor_optimizer_kwargs = args.optimizer_kwargs
-    if args.learning_rate:
-        args.vae_learning_rate = args.learning_rate
-        args.predictor_learning_rate = args.learning_rate
-    if args.lr_scheduler_type:
-        args.vae_lr_scheduler_type = args.lr_scheduler_type
-        args.predictor_lr_scheduler_type = args.lr_scheduler_type
-    if args.lr_scheduler_warmup_steps:
-        args.vae_lr_scheduler_warmup_steps = args.lr_scheduler_warmup_steps
-        args.predictor_lr_scheduler_warmup_steps = args.lr_scheduler_warmup_steps
-    if args.lr_scheduler_num_cycles:
-        args.vae_lr_scheduler_num_cycles = args.lr_scheduler_num_cycles
-        args.predictor_lr_scheduler_num_cycles = args.lr_scheduler_num_cycles
-    if args.lr_scheduler_power:
-        args.vae_lr_scheduler_power = args.lr_scheduler_power
-        args.predictor_lr_scheduler_power = args.lr_scheduler_power
         
     os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 

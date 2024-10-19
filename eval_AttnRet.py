@@ -7,14 +7,10 @@ from typing import List, Dict, Tuple, Optional, Literal, Union, Any, Callable
 
 import csv
 from tqdm import tqdm
-import numpy as np
 
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, Sampler
-
-from matplotlib import pyplot as plt
-import plotly.graph_objs as go
 
 from dataset import StockDataset, StockSequenceDataset, DataLoader_Preparer
 from nets import AttnRet
@@ -156,11 +152,8 @@ class AttnRetEvaluator:
         elif self.subset == "test":
             self.test_loader = loaders[2]
 
-    def load_checkpoint(self, model_path:str):
-        utils.load_checkpoint(checkpoint_path=model_path, model=self.model)
-    
     def eval(self, checkpoint_path):
-        self.load_checkpoint(checkpoint_path)
+        utils.load_checkpoint(checkpoint_path=checkpoint_path, model=self.model)
         if self.metric == "MSE":
             self.pred_eval_func = MSE_Loss(scale=1)
         elif self.metric == "IC" or self.metric == "ICIR":
@@ -234,9 +227,7 @@ def parse_args():
     parser.add_argument("--fundamental_feature_size", type=int, help="Input size of fundamental feature")
     parser.add_argument("--num_gru_layers", type=int, help="Num of GRU layers in feature extractor.")
     parser.add_argument("--gru_hidden_size", type=int, help="Hidden size of each GRU layer. num_gru_layers * gru_hidden_size i.e. the input size of FactorEncoder and Factor Predictor.")
-    parser.add_argument("--hidden_size", type=int, help="Hidden size of FactorVAE(Encoder, Pedictor and Decoder), i.e. num of portfolios.")
-    parser.add_argument("--latent_size", type=int, help="Latent size of FactorVAE(Encoder, Pedictor and Decoder), i.e. num of factors.")
-    parser.add_argument("--std_activation", type=str, default="exp", help="Activation function for standard deviation calculation, literally `exp` or `softplus`. Default `exp`")
+    parser.add_argument("--num_fc_layers", type=int, default=4, help="Num of full connected layers in MLP")
     
     # eval config
     parser.add_argument("--dtype", type=str, default="FP32", choices=["FP32", "FP64", "FP16", "BF16"], help="Dtype of data and weight tensor. Literally `FP32`, `FP64`, `FP16` or `BF16`. Default `FP32`")

@@ -130,6 +130,14 @@ def save_checkpoint(model:torch.nn.Module, save_folder:str, save_name:str, save_
     else:
         raise ValueError(f"Unrecognized file format`{save_format}`")
 
+def load_checkpoint(model:torch.nn.Module, checkpoint_path:str):
+    if checkpoint_path.endswith(".pt"):
+        model.load_state_dict(torch.load(checkpoint_path, weights_only=False))
+    elif checkpoint_path.endswith(".safetensors"):
+        model.load_state_dict(safetensors.torch.load_file(checkpoint_path))
+    else:
+        raise ValueError(f"Unrecognized model weights file `{checkpoint_path}`")
+
 def load(path:str):
     if path.endswith(".pt"):
         return torch.load(f=path, weights_only=False)
@@ -152,14 +160,6 @@ def save(obj:Dict[str, torch.Tensor], path:str):
             pickle.dump(f)
     else:
         raise ValueError(f"Unrecognized file `{path}`")
-
-def load_checkpoint(model:torch.nn.Module, checkpoint_path:str):
-    if checkpoint_path.endswith(".pt"):
-        model.load_state_dict(torch.load(checkpoint_path, weights_only=False))
-    elif checkpoint_path.endswith(".safetensors"):
-        model.load_state_dict(safetensors.torch.load_file(checkpoint_path))
-    else:
-        raise ValueError(f"Unrecognized model weights file `{checkpoint_path}`")
 
 def check(tensor:torch.Tensor):
     return torch.any(torch.isnan(tensor) | torch.isinf(tensor))

@@ -7,13 +7,11 @@ from numbers import Number
 from typing import List, Dict, Tuple, Optional, Literal, Union, Any, Callable
 
 from tqdm import tqdm
-from scipy.stats import pearsonr, spearmanr
 
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.utils.tensorboard.writer import SummaryWriter
-from safetensors.torch import save_file, load_file
 
 from dataset import DataLoader_Preparer, StockSequenceCatDataset, StockDataset
 from nets import FactorVAE

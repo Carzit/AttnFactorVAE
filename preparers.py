@@ -93,15 +93,15 @@ class Preparer:
 class Model_Preparer(Preparer):
     def __init__(self, model_type) -> None:
         super().__init__()
-        self.model_type:str = model_type
+        self.type:str = model_type
         self.checkpoint_path:str = None
 
     def load_configs(self, config_file:str) -> Dict[str, Any]:
         configs = super().load_configs(config_file=config_file)
-        if configs["Model"]["type"] == self.model_type:
+        if configs["Model"]["type"] == self.type:
             return configs
         else:
-            raise TypeError(f"Wrong config model type `{configs["Model"]["type"]}` mismatch `{self.model_type}`")
+            raise TypeError(f"Wrong config model type `{configs["Model"]["type"]}` mismatch `{self.type}`")
     
 
 class Model_AttnFactorVAE_Preparer(Model_Preparer):
@@ -170,6 +170,7 @@ class Model_AttnFactorVAE_Preparer(Model_Preparer):
                          checkpoint_path=args.checkpoint_path)
         
     def prepare(self):
+        self.logger.info("Preparing AttnFactorVAE Model...")
         model = AttnFactorVAE(fundamental_feature_size=self.fundamental_feature_size,
                               quantity_price_feature_size=self.quantity_price_feature_size,
                               num_gru_layers=self.num_gru_layers,
@@ -180,6 +181,9 @@ class Model_AttnFactorVAE_Preparer(Model_Preparer):
                               std_activ=self.std_activation)
         if self.checkpoint_path:
             self.load_checkpoint(model=model, checkpoint_path=self.checkpoint_path)
+        else:
+            self.logger.info("No checkpoint path. Default randomly initialized weights will be used.")
+        self.logger.info("AttnFactorVAE Model Prepared.")
         return model
 
     def load_checkpoint(self, model:FactorVAE, checkpoint_path:str):
@@ -218,7 +222,6 @@ class Model_AttnFactorVAE_Preparer(Model_Preparer):
             self.logger.critical(f"No configuration files found in the checkpoint folder `{checkpoint_folder}`. Try loading weights...")
             try:
                 utils.load_checkpoint(model, checkpoint_path)
-                self.logger.info("Load weights successfully.")
             except Exception as e:
                 self.logger.warning("Failed to load weight. Default randomly initialized weights will be used.")
     
@@ -284,6 +287,7 @@ class Model_FactorVAE_Preparer(Model_Preparer):
                          checkpoint_path=args.checkpoint_path)
         
     def prepare(self):
+        self.logger.info("Preparing FactorVAE Model...")
         model = FactorVAE(feature_size=self.feature_size,
                           num_gru_layers=self.num_gru_layers,
                           gru_hidden_size=self.gru_hidden_size,
@@ -293,6 +297,9 @@ class Model_FactorVAE_Preparer(Model_Preparer):
                           std_activ=self.std_activation)
         if self.checkpoint_path:
             self.load_checkpoint(model=model, checkpoint_path=self.checkpoint_path)
+        else:
+            self.logger.info("No checkpoint path. Default randomly initialized weights will be used.")
+        self.logger.info("FactorVAE Model Prepared.")
         return model
     
     def load_checkpoint(self, model:FactorVAE, checkpoint_path:str):
@@ -318,7 +325,6 @@ class Model_FactorVAE_Preparer(Model_Preparer):
             self.logger.critical(f"No configuration files found in the checkpoint folder `{checkpoint_folder}`. Try loading weights...")
             try:
                 utils.load_checkpoint(model, checkpoint_path)
-                self.logger.info("Load weights successfully.")
             except Exception as e:
                 self.logger.warning("Failed to load weight. Default randomly initialized weights will be used.")
 
@@ -379,6 +385,7 @@ class Model_AttnRet_Preparer(Model_Preparer):
                          checkpoint_path=args.checkpoint_path)
         
     def prepare(self):
+        self.logger.info("Preparing AttnRet Model...")
         model = AttnRet(fundamental_feature_size=self.fundamental_feature_size,
                         quantity_price_feature_size=self.quantity_price_feature_size,
                         num_gru_layers=self.num_gru_layers,
@@ -387,6 +394,9 @@ class Model_AttnRet_Preparer(Model_Preparer):
                         num_fc_layers=self.num_fc_layers)
         if self.checkpoint_path:
             self.load_checkpoint(model=model, checkpoint_path=self.checkpoint_path)
+        else:
+            self.logger.info("No checkpoint path. Default randomly initialized weights will be used.")
+        self.logger.info("AttnRet Model Prepared.")
         return model
     
     def load_checkpoint(self, model:FactorVAE, checkpoint_path:str):
@@ -451,6 +461,7 @@ class ObjectiveLoss_Preparer(Preparer):
     
     def prepare(self):
         return ObjectiveLoss(scale=self.scale, gamma=self.gamma)
+
 
 class Optimizer_Preparer(Preparer):
     def __init__(self, optimizer_name:Optional[str] = None) -> None:

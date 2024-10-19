@@ -7,14 +7,10 @@ from typing import List, Dict, Tuple, Optional, Literal, Union, Any, Callable
 
 import csv
 from tqdm import tqdm
-import numpy as np
 
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, Sampler
-
-from matplotlib import pyplot as plt
-import plotly.graph_objs as go
 
 from dataset import StockDataset, StockSequenceDataset, DataLoader_Preparer
 from nets import AttnFactorVAE
@@ -76,7 +72,6 @@ class AttnFactorVAEEvaluator:
         self.checkpoints = checkpoints
         self.checkpoint_folder = checkpoint_folder
         self.plot_index = plot_index
-
 
         os.makedirs(self.save_folder, exist_ok=True)
 
@@ -161,12 +156,9 @@ class AttnFactorVAEEvaluator:
             self.test_loader = loaders[1]
         elif self.subset == "test":
             self.test_loader = loaders[2]
-
-    def load_checkpoint(self, model_path:str):
-        utils.load_checkpoint(checkpoint_path=model_path, model=self.model)
     
     def eval(self, checkpoint_path):
-        self.load_checkpoint(checkpoint_path)
+        utils.load_checkpoint(checkpoint_path=checkpoint_path, model=self.model)
         if self.metric == "MSE":
             self.pred_eval_func = MSE_Loss(scale=1)
         elif self.metric == "IC" or self.metric == "ICIR":

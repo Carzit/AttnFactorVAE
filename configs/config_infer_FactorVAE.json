@@ -1,18 +1,17 @@
 {
     "Model": {
-        "type": "AttnFactorVAE",
-        "fundamental_feature_size": 31,
-        "quantity_price_feature_size": 101,
+        "type": "FactorVAE",
+        "feature_size": 132,
         "num_gru_layers": 4,
         "gru_hidden_size": 32,
         "hidden_size": 100,
         "latent_size": 48,
         "gru_dropout": 0.1,
         "std_activation": "softplus",
-        "checkpoint_path": "model\\AttnFactorVAE\\test_softmax\\AttnFactorVAE_epoch11.pt"
+        "checkpoint_path": "model\\FactorVAE\\test\\AttnFactorVAE_epoch1.pt"
     },
     "Dataset": {
-        "dataset_path": "data\\dataset_loose_drop.pt",
+        "dataset_path": "data\\dataset_cat.pt",
         "subset": "test",
         "num_workers": 4,
         "mode": "loose_drop",
@@ -22,6 +21,6 @@
         "device": "cuda",
         "dtype": "FP32",
         "save_format": "csv",
-        "save_folder": "infer\\AttnFactorVAE\\test"
+        "save_folder": "infer\\FactorVAE\\test"
     }
 }

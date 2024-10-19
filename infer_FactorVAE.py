@@ -13,20 +13,20 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, Sampler
 
-from dataset import StockDataset, StockSequenceDataset, DataLoader_Preparer
-from nets import AttnFactorVAE
-from preparers import Model_AttnFactorVAE_Preparer, LoggerPreparer
+from dataset import StockDataset, StockSequenceCatDataset, DataLoader_Preparer
+from nets import FactorVAE
+from preparers import Model_FactorVAE_Preparer, LoggerPreparer
 import utils
 
 
-class AttnFactorVAEInfer:
+class FactorVAEInfer:
     def __init__(self) -> None:
         
-        self.model:AttnFactorVAE
+        self.model:FactorVAE
         self.test_loader:DataLoader
         self.subset:str = "test"
 
-        self.model_preparer = Model_AttnFactorVAE_Preparer()
+        self.model_preparer = Model_FactorVAE_Preparer()
         self.dataloader_preparer = DataLoader_Preparer()
         
         self.dates:List[str]
@@ -125,14 +125,13 @@ class AttnFactorVAEInfer:
         model = self.model.to(device=self.device, dtype=self.dtype)
         model.eval() # set eval mode to frozen layers like dropout
         with torch.no_grad(): 
-            for batch, (quantity_price_feature, fundamental_feature, label, valid_indices) in enumerate(tqdm(self.test_loader)):
-                if fundamental_feature.shape[0] <= 2:
+            for batch, (feature, label, valid_indices) in enumerate(tqdm(self.test_loader)):
+                if feature.shape[0] <= 2:
                     continue
-                quantity_price_feature = quantity_price_feature.to(device=self.device, dtype=self.dtype)
-                fundamental_feature = fundamental_feature.to(device=self.device, dtype=self.dtype)
+                feature = feature.to(device=self.device, dtype=self.dtype)
                 label = label.to(device=self.device, dtype=self.dtype)
                 valid_indices = valid_indices.to(device=self.device)
-                y_pred, *_ = model.predict(fundamental_feature, quantity_price_feature)
+                y_pred, *_ = model.predict(feature)
 
                 date = self.dates[batch]
                 df = self.sparse_fill(y_pred, valid_indices)
@@ -163,9 +162,9 @@ class AttnFactorVAEInfer:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="AttnFactorVAE Infer")
+    parser = argparse.ArgumentParser(description="FactorVAE Infer")
 
-    parser.add_argument("--log_path", type=str, default="log/infer_AttnFactorVAE.log", help="Path of log file. Default `log/infer_AttnFactorVAE.log`")
+    parser.add_argument("--log_path", type=str, default="log/infer_FactorVAE.log", help="Path of log file. Default `log/infer_FactorVAE.log`")
 
     parser.add_argument("--load_configs", type=str, default=None, help="Path of config file to load. Optional")
     parser.add_argument("--save_configs", type=str, default=None, help="Path of config file to save. Default saved to save_folder as `config.json`")
@@ -203,7 +202,7 @@ if __name__ == "__main__":
     
     logger.debug(f"Command: {' '.join(sys.argv)}")
     
-    evaluator = AttnFactorVAEInfer()
+    evaluator = FactorVAEInfer()
     evaluator.set_logger(logger=logger)
     if args.load_configs:
         evaluator.load_configs(config_file=args.load_configs)

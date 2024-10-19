@@ -7,14 +7,10 @@ from typing import List, Dict, Tuple, Optional, Literal, Union, Any, Callable
 
 import csv
 from tqdm import tqdm
-import numpy as np
 
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, Sampler
-
-from matplotlib import pyplot as plt
-import plotly.graph_objs as go
 
 from dataset import StockDataset, StockSequenceCatDataset, DataLoader_Preparer
 from nets import FactorVAE
@@ -275,8 +271,6 @@ if __name__ == "__main__":
     logger.info("Eval start...")
     evaluator.evals()
     logger.info("Eval complete.")
-
-    ##
         
 
 

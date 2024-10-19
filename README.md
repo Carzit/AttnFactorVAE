@@ -477,3 +477,4 @@ train_FactorVAE.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME] [--save_confi
 
 #### 其他
 - 权重迁移: checkpoint_path不仅可以指向FactorVAE模型权重文件，也可以指向AttnFactorVAE模型文件。若AttnFactorVAE模型文件目录下存在配置文件config.json，则检查之，若配置支持迁移，则会加载AttnFactorVAE模型中的encoder、decoder、predictor模块的权重，只随机初始化feature_extractor模块。而若配置不支持或尝试加载模型权重失败，则不会进行权重加载。
+- 多优化器：设置多个优化器对模型的不同模块进行优化并不会改变张量的计算图和梯度的值，但对于一些内部保存全局动量的优化器如Adam，这部分的值可能会有一点差异，会与单一的全局优化器有区别。简单地，将VAE模块和Predictor模块的优化器参数设置为相同的参数（我们提供了快速这样实现的arguments选项）可以近似地视为设置了一个单一全局优化器。
