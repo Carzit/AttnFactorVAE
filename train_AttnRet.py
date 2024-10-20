@@ -177,7 +177,7 @@ class AttnRetTrainer:
         if not config_file:
             config_file = os.path.join(self.save_folder, "config.json")
         utils.save_configs(config_file=config_file, config_dict=configs)
-        self.logger.info(f"Train Configs: {configs}`")
+        self.logger.debug(f"Train Configs: {configs}`")
         self.logger.info(f"Config file saved to `{config_file}`")
 
     def prepare(self):

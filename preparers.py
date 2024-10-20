@@ -1,11 +1,11 @@
+import logging.handlers
 import os
 import ast
 import argparse
 from typing import Callable, Literal, Union, Optional, List, Dict, Any
 from collections import OrderedDict
 import logging
-from logging import Logger
-from logging.handlers import RotatingFileHandler
+from colorama import Fore, Style, init
 
 import safetensors.torch
 import torch
@@ -21,10 +21,10 @@ import utils
 
 class Model_WeightTransfer:
     def __init__(self):
-        self.logger:Logger
+        self.logger:logging.Logger
         self.state_dict:OrderedDict
 
-    def set_logger(self, logger:Logger):
+    def set_logger(self, logger:logging.Logger):
         if not logger:
             logger = logging
         self.logger = logger
@@ -63,7 +63,7 @@ class Model_WeightTransfer:
 
 class Preparer:
     def __init__(self):
-        self.logger:Logger = None
+        self.logger:logging.Logger = None
         self.configs:Dict[str, Any] = {}
 
     def set_configs(self):
@@ -81,7 +81,7 @@ class Preparer:
     def get_args(self):
         return self.configs
     
-    def set_logger(self, logger:Logger):
+    def set_logger(self, logger:logging.Logger):
         if not logger:
             logger = logging
         self.logger = logger
@@ -606,6 +606,42 @@ class Optimizer_Preparer(Preparer):
         lr_scheduler = self.prepare_lr_scheduler(optimizer=optimizer)
         return optimizer, lr_scheduler
     
+class ColoredAllFormatter(logging.Formatter):
+    init(autoreset=True)
+    LEVEL_COLORS = {
+        logging.DEBUG: Fore.BLUE,
+        logging.INFO: Fore.CYAN,
+        logging.WARNING: Fore.YELLOW,
+        logging.ERROR: Fore.RED,
+        logging.CRITICAL: Fore.RED + Style.BRIGHT
+    }
+
+    def format(self, record):
+        log_color = self.LEVEL_COLORS.get(record.levelno, Fore.WHITE)
+        message = super().format(record)
+        return f"{log_color}{message}{Style.RESET_ALL}"
+    
+class ColoredFormatter(logging.Formatter):
+    LEVEL_COLORS = {
+        logging.DEBUG: Fore.BLUE,
+        logging.INFO: Fore.CYAN,
+        logging.WARNING: Fore.YELLOW,
+        logging.ERROR: Fore.RED,
+        logging.CRITICAL: Fore.RED + Style.BRIGHT
+    }
+
+    def format(self, record):
+        # First, call the base class format method to ensure time, level, and other info are set
+        original_message = super().format(record)
+
+        # Color only the message part (record.msg)
+        log_color = self.LEVEL_COLORS.get(record.levelno, Fore.WHITE)
+        colored_message = f"{log_color}{record.getMessage()}{Style.RESET_ALL}"
+
+        # Replace the original message with the colored one, but keep the rest unchanged
+        return original_message.replace(record.getMessage(), colored_message)
+
+
 class LoggerPreparer:
     def __init__(self, 
                  name: str = 'logger', 
@@ -621,18 +657,21 @@ class LoggerPreparer:
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.DEBUG)
 
+        # Console handler with colored output
         console_handler = logging.StreamHandler()
         console_handler.setLevel(console_level)
+        console_formatter = ColoredFormatter('%(asctime)s [%(name)s][%(levelname)s]: %(message)s')
+        console_handler.setFormatter(console_formatter)
 
-        file_handler = RotatingFileHandler(log_file, maxBytes=max_bytes, backupCount=backup_count)
+        # File handler with plain text output
+        file_handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=int(max_bytes), backupCount=backup_count)
         file_handler.setLevel(file_level)
+        file_formatter = logging.Formatter('%(asctime)s [%(name)s][%(levelname)s]: %(message)s')
+        file_handler.setFormatter(file_formatter)
 
-        formatter = logging.Formatter('%(asctime)s [%(name)s][%(levelname)s]: %(message)s')
-        console_handler.setFormatter(formatter)
-        file_handler.setFormatter(formatter)
-
+        # Add handlers to logger
         self.logger.addHandler(console_handler)
         self.logger.addHandler(file_handler)
 
-    def prepare(self) -> Logger:
+    def prepare(self) -> logging.Logger:
         return self.logger
