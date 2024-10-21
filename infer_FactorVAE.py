@@ -125,7 +125,7 @@ class FactorVAEInfer:
         model = self.model.to(device=self.device, dtype=self.dtype)
         model.eval() # set eval mode to frozen layers like dropout
         with torch.no_grad(): 
-            for batch, (feature, label, valid_indices) in enumerate(tqdm(self.test_loader)):
+            for batch, (feature, label, valid_indices) in enumerate(tqdm(self.test_loader, desc="Infer")):
                 if feature.shape[0] <= 2:
                     continue
                 feature = feature.to(device=self.device, dtype=self.dtype)
@@ -152,7 +152,7 @@ class FactorVAEInfer:
         
     def aggregate(self) -> pd.DataFrame:
         all_predictions = []
-        for date in self.dates:
+        for date in tqdm(self.dates, desc="Merge results"):
             file_path = os.path.join(self.save_folder, f"{date}.{self.save_format}")
             df = utils.load_dataframe(path=file_path, format=self.save_format)
             df = df.set_index('stock_code')     
@@ -175,8 +175,7 @@ def parse_args():
     parser.add_argument("--num_workers", type=int, default=4, help="Num of subprocesses to use for data loading. 0 means that the data will be loaded in the main process. Default 4")
     
     # model config
-    parser.add_argument("--quantity_price_feature_size", type=int, help="Input size of quantity-price feature")
-    parser.add_argument("--fundamental_feature_size", type=int, help="Input size of fundamental feature")
+    parser.add_argument("--feature_size", type=int, help="Input size of features")
     parser.add_argument("--num_gru_layers", type=int, help="Num of GRU layers in feature extractor.")
     parser.add_argument("--gru_hidden_size", type=int, help="Hidden size of each GRU layer. num_gru_layers * gru_hidden_size i.e. the input size of FactorEncoder and Factor Predictor.")
     parser.add_argument("--hidden_size", type=int, help="Hidden size of FactorVAE(Encoder, Pedictor and Decoder), i.e. num of portfolios.")
@@ -202,17 +201,17 @@ if __name__ == "__main__":
     
     logger.debug(f"Command: {' '.join(sys.argv)}")
     
-    evaluator = FactorVAEInfer()
-    evaluator.set_logger(logger=logger)
+    infer = FactorVAEInfer()
+    infer.set_logger(logger=logger)
     if args.load_configs:
-        evaluator.load_configs(config_file=args.load_configs)
+        infer.load_configs(config_file=args.load_configs)
     else:
-        evaluator.load_args(args=args)
-    evaluator.prepare()
-    evaluator.save_configs()
+        infer.load_args(args=args)
+    infer.prepare()
+    infer.save_configs()
 
     logger.info("Infer start...")
-    evaluator.infer()
+    infer.infer()
     logger.info("Infer complete.")
         
 

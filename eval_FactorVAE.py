@@ -172,7 +172,7 @@ class FactorVAEEvaluator:
         model.eval() # set eval mode to frozen layers like dropout
         with torch.no_grad(): 
             with utils.MeanVarianceAccumulator() as accumulator:
-                for batch, (feature, label, _) in enumerate(tqdm(self.test_loader)):
+                for batch, (feature, label, _) in enumerate(tqdm(self.test_loader, desc=f"{checkpoint_path[checkpoint_path.find('epoch'):checkpoint_path.find('.')]} Eval")):
                     if feature.shape[0] <= 2:
                         continue
                     feature = feature.to(device=self.device)

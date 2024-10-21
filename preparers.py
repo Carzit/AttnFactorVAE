@@ -19,6 +19,8 @@ from nets import *
 from loss import *
 import utils
 
+init(autoreset=True)
+
 class Model_WeightTransfer:
     def __init__(self):
         self.logger:logging.Logger
@@ -607,7 +609,6 @@ class Optimizer_Preparer(Preparer):
         return optimizer, lr_scheduler
     
 class ColoredAllFormatter(logging.Formatter):
-    init(autoreset=True)
     LEVEL_COLORS = {
         logging.DEBUG: Fore.BLUE,
         logging.INFO: Fore.CYAN,

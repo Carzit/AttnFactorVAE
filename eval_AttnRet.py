@@ -168,7 +168,7 @@ class AttnRetEvaluator:
         model.eval() # set eval mode to frozen layers like dropout
         with torch.no_grad(): 
             with utils.MeanVarianceAccumulator() as accumulator:
-                for batch, (quantity_price_feature, fundamental_feature, label, _) in enumerate(tqdm(self.test_loader)):
+                for batch, (quantity_price_feature, fundamental_feature, label, _) in enumerate(tqdm(self.test_loader, desc=f"{checkpoint_path[checkpoint_path.find('epoch'):checkpoint_path.find('.')]} Eval")):
                     if fundamental_feature.shape[0] <= 2:
                         continue
                     quantity_price_feature = quantity_price_feature.to(device=self.device)

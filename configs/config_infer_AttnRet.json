@@ -1,0 +1,25 @@
+{
+    "Model": {
+        "type": "AttnRet",
+        "fundamental_feature_size": 31,
+        "quantity_price_feature_size": 101,
+        "num_gru_layers": 4,
+        "gru_hidden_size": 32,
+        "gru_dropout": 0.1,
+        "num_fc_layers": 4,
+        "checkpoint_path": "model\\AttnRet\\test\\AttnRet_epoch1.pt"
+    },
+    "Dataset": {
+        "dataset_path": "data\\dataset_loose_drop.pt",
+        "subset": "test",
+        "num_workers": 4,
+        "mode": "loose_drop",
+        "seq_len": 20
+    },
+    "Infer": {
+        "device": "cuda",
+        "dtype": "FP32",
+        "save_format": "csv",
+        "save_folder": "infer\\AttnRet\\test"
+    }
+}

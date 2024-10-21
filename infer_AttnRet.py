@@ -14,19 +14,19 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, Sampler
 
 from dataset import StockDataset, StockSequenceDataset, DataLoader_Preparer
-from nets import AttnFactorVAE
-from preparers import Model_AttnFactorVAE_Preparer, LoggerPreparer
+from nets import AttnRet
+from preparers import Model_AttnRet_Preparer, LoggerPreparer
 import utils
 
 
 class AttnFactorVAEInfer:
     def __init__(self) -> None:
         
-        self.model:AttnFactorVAE
+        self.model:AttnRet
         self.test_loader:DataLoader
         self.subset:str = "test"
 
-        self.model_preparer = Model_AttnFactorVAE_Preparer()
+        self.model_preparer = Model_AttnRet_Preparer()
         self.dataloader_preparer = DataLoader_Preparer()
         
         self.dates:List[str]
@@ -132,7 +132,7 @@ class AttnFactorVAEInfer:
                 fundamental_feature = fundamental_feature.to(device=self.device, dtype=self.dtype)
                 label = label.to(device=self.device, dtype=self.dtype)
                 valid_indices = valid_indices.to(device=self.device)
-                y_pred, *_ = model.predict(fundamental_feature, quantity_price_feature)
+                y_pred = model(fundamental_feature, quantity_price_feature)
 
                 date = self.dates[batch]
                 df = self.sparse_fill(y_pred, valid_indices)
@@ -163,9 +163,9 @@ class AttnFactorVAEInfer:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="AttnFactorVAE Infer")
+    parser = argparse.ArgumentParser(description="AttnRet Infer")
 
-    parser.add_argument("--log_path", type=str, default="log/infer_AttnFactorVAE.log", help="Path of log file. Default `log/infer_AttnFactorVAE.log`")
+    parser.add_argument("--log_path", type=str, default="log/infer_AttnRet.log", help="Path of log file. Default `log/infer_AttnRet.log`")
 
     parser.add_argument("--load_configs", type=str, default=None, help="Path of config file to load. Optional")
     parser.add_argument("--save_configs", type=str, default=None, help="Path of config file to save. Default saved to save_folder as `config.json`")
@@ -180,9 +180,7 @@ def parse_args():
     parser.add_argument("--fundamental_feature_size", type=int, help="Input size of fundamental feature")
     parser.add_argument("--num_gru_layers", type=int, help="Num of GRU layers in feature extractor.")
     parser.add_argument("--gru_hidden_size", type=int, help="Hidden size of each GRU layer. num_gru_layers * gru_hidden_size i.e. the input size of FactorEncoder and Factor Predictor.")
-    parser.add_argument("--hidden_size", type=int, help="Hidden size of FactorVAE(Encoder, Pedictor and Decoder), i.e. num of portfolios.")
-    parser.add_argument("--latent_size", type=int, help="Latent size of FactorVAE(Encoder, Pedictor and Decoder), i.e. num of factors.")
-    parser.add_argument("--std_activation", type=str, default="exp", help="Activation function for standard deviation calculation, literally `exp` or `softplus`. Default `exp`")
+    parser.add_argument("--num_fc_layers", type=int, default=4, help="Num of full connected layers in MLP")
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Folder Path of checkpoint")
     
     # infer config
