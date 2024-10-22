@@ -1,4 +1,8 @@
 
+# AttnFactorVAE
+
+
+
 ## 数据
 待处理文件应以因子名为文件名,以股票代码为列名,以交易日期为行名。示例如下: 
 
@@ -35,12 +39,9 @@
 
 ## 如何使用
 
-### 1. data_construct.py
-
+### 1. 数据构建与预处理
+使用`data_construct.py`进行数据构建与预处理。   
 该脚本用于从指定文件夹中预处理包含量价因子、基本面因子和预测目标文件的数据,预处理操作包括股票代码与日期的对齐、数据的拆分组织和数据的标准化(待实现)。处理后的数据将保存在指定的保存文件夹下的对应子目录。
-
-
-
 
 ```
 data_construct.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]   
@@ -136,7 +137,7 @@ dataset.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]
 - loose_drop: 仅在序列中所有横截面均出现 NaN 或 Inf 的股票代码上执行删除操作。  
 
 --cat:
-是否将数量-价格特征与基本面特征进行拼接。
+是否将数量-价格特征与基本面特征进行拼接。注意对于FactorVAE模型使用的数据集，该参数应为True；对于AttnFactorVAE和AttnRet模型使用的数据集，该参数应为False。 
 默认值: True  
 --dtype:
 数据张量的类型。支持 FP32、FP64、FP16 或 BF16。
@@ -157,17 +158,18 @@ dataset.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]
 划分后的数据集train-val-test字典的pt文件保存路径。
 
 
-### 3.train_AttnFactorVAE.py
+### 3. 训练
 
-#### 从外部文件导入配置
+使用`train_AttnFactorVAE.py`进行AttnFactorVAE模型的训练。训练参数有两种载入途径：从外部文件导入配置和使用命令行参数设定配置。  
+
+#### 3.1 从外部文件导入配置
 ```
-train_AttnFactorVAE.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]  
+train_AttnFactorVAE.py [--log_path LOG_PATH]
                         --load_configs LOAD_CONFIGS
                        [--save_configs SAVE_CONFIGS]
 ```
-**参数**  
---log_folder: 日志文件保存路径(默认: "log")  
---log_name: 日志文件名称(默认: train_AttnFactorVAE.log)  
+
+--log_folder: 日志文件保存路径(默认: "log/train_AttnFactorVAE.log")   
 --load_configs: 读取配置文件的路径  
 --save_configs: 保存配置文件的路径(默认保存为 save_folder 中的 config.json)  
 
@@ -235,9 +237,9 @@ train_AttnFactorVAE.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]
 }
 ```
 
-#### 使用命令行参数设定配置
+#### 3.2 使用命令行参数设定配置
 ```
-train_AttnFactorVAE.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME] [--save_configs SAVE_CONFIGS]
+train_AttnFactorVAE.py [--log_path LOG_PATH] [--save_configs SAVE_CONFIGS]
                         --dataset_path DATASET_PATH --num_workers NUM_WORKERS --shuffle SHUFFLE --num_batches_per_epoch NUM_BATCHES_PER_EPOCH 
                         --checkpoint_path CHECKPOINT_PATH --quantity_price_feature_size QUANTITY_PRICE_FEATURE_SIZE --fundamental_feature_size FUNDAMENTAL_FEATURE_SIZE --num_gru_layers NUM_GRU_LAYERS --gru_hidden_size GRU_HIDDEN_SIZE --hidden_size HIDDEN_SIZE --latent_size LATENT_SIZE --gru_dropout GRU_DROPOUT --std_activation {exp,softplus}   
                         --optimizer_type {Adam,AdamW,Lion,SGDNesterov,DAdaptation,Adafactor} --optimizer_kwargs OPTIMIZER_KWARGS [OPTIMIZER_KWARGS ...] --learning_rate LEARNING_RATE --lr_scheduler_type {constant,linear,cosine,cosine_with_restarts,polynomial,adafactor} --lr_scheduler_warmup_steps LR_SCHEDULER_WARMUP_STEPS --lr_scheduler_num_cycles LR_SCHEDULER_NUM_CYCLES --lr_scheduler_power LR_SCHEDULER_POWER 
@@ -252,8 +254,7 @@ train_AttnFactorVAE.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME] [--save_c
 该脚本接受多种命令行参数来配置训练过程,以下是关键参数的简要说明: 
 
 **通用参数**  
---log_folder: 日志文件保存路径(默认: "log")  
---log_name: 日志文件名称(默认: train_AttnFactorVAE.log)  
+--log_path: 日志文件保存路径(默认: "log/train_AttnFactorVAE.log")   
 --save_configs: 保存配置文件的路径(默认保存为 save_folder 中的 config.json)  
 
 
@@ -283,7 +284,7 @@ train_AttnFactorVAE.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME] [--save_c
 --lr_scheduler_num_cycles: cosine学习率调度中的波数。(默认为 0.5)  
 --lr_scheduler_power polynomial学习率调度中多项式的幂。(默认为 1)  
 
-你也可以分别指定VAE模块(包括feature_extractor, encoder和decoder)和predictor模块的优化器参数。这两个模块会使用不同的优化器进行参数的更新。在指定上述参数时,相当于同时将相同参数赋给VAE模块和predictor模块的优化器。  
+你也可以分别指定VAE模块(包括feature_extractor, encoder和decoder)和predictor模块的优化器参数。这两个模块会使用不同的优化器进行参数的更新。在指定上述参数时,相当于同时将相同参数赋给VAE模块和predictor模块的优化器（例如：`--optimizer_type Adam`等价于`--vae_optimizer_type Adam --predictor_optimizer_type Adam`）。  
 
 --vae_optimizer_type: VAE优化器类型(默认: Lion,可选: Adam、AdamW、Lion、SGDNesterov、DAdaptation、Adafactor)   
 --vae_optimizer_kwargs: VAE优化器的其他参数。可以以关键字参数的方式传入。(可选)  
@@ -317,17 +318,34 @@ train_AttnFactorVAE.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME] [--save_c
 --save_name: 保存模型的名称(默认: Model)
 --save_format: 保存模型的文件格式(默认: .pt, 可选: .pt、.safetensor)
 
-### 4. train_FactorVAE.py
+#### 3.3 AttnRet和FactorVAE
+为了方便进行模型性能的比较，我们同时提供了AttnRet(RiskAttention)和FactorVAE模型的训练代码：`train_AttnRet.py`和`train_FactorVAE.py`。使用方式与`train_AttnFactorVAE.py`相同。  
 
-#### 从外部文件导入配置
+但注意，由于模型不尽相同，模型相关的超参数存在差异。具体地表现为：
+- AttnRet模型由于将VAE模块替换为MLP,因此没有AttnFactorVAE模型中的hidden_size, latent_size和std_activation参数，而是新增了num_fc_layers参数；
+- FactorVAE模型则因为使用无注意力机制的特征提取器，因此不对feature种类进行区分，因此没有AttnFactorVAE模型中的quantity_price_feature_size和fundamental_feature_size参数，而是使用feature_size参数（这个参数的值即quantity_price_feature_size和fundamental_feature_size参数之和）。
+- AttnRet只有单一的全局优化器，而不是像AttnFactorVAE和FactorVAE一样设置两个优化器分别优化VAE模块和predictor模块。因此AttnRet训练时没有形如`--vae_optimizer_**`、`--predictor_optimizer_**`的命令行参数，配置文件夹中也没有`"VAE_Optimizer"`、`"Predictor_VAE"`键，取而代之的是`"Optimizer"`。
+
+您可以查看本repository的configs文件夹下的`config_train_AttnRet.json`和`config_train_FactorVAE.json`配置文件示例；同时，您也可以使用`python train_AttnRet.py`和`python train_FactorVAE.py -h`命令以查看命令行参数的详细信息。在此不做赘述。  
+
+
+#### 3.4 其他
+**权重迁移：** 由于AttnFactor, AttnRet和FactorVAE之间的模型架构存在相同的部分，出于加速训练和增加模型可比性的目的，上述模型的训练代码支持不同模型间相同模块部分的权重迁移，包括AttnFactor和AttnRet之间的AttnFeatureExtractor模块、AttnFactorVAE和FactorVAE之间的encoder、decoder和predictor模型。例如，在FactorVAE训练时，checkpoint_path不仅可以指向FactorVAE模型权重文件，也可以指向AttnFactorVAE模型文件。若AttnFactorVAE模型文件目录下存在配置文件config.json，则检查之，若配置支持迁移（形状匹配），则会加载AttnFactorVAE模型中的encoder、decoder、predictor模块的权重，只随机初始化feature_extractor模块。而若配置不支持或尝试加载模型权重失败，则不会进行权重加载。  
+
+**多优化器：** 我们对于AttnFactorVAE和FactorVAE的训练设置了两个优化器，分别对VAE模块(包括attn_feature_extractor/feature_extractor, encoder和decoder模块)和predictor模块进行更新。设置多个优化器对模型的不同模块进行优化并不会改变张量的计算图和梯度的值，但对于一些内部保存全局动量的优化器如Adam，这部分的值可能会有一点差异，会与单一的全局优化器有区别。简单地，将VAE模块和Predictor模块的优化器参数设置为相同的参数（我们提供了快速这样实现的arguments选项）可以近似地视为设置了一个单一全局优化器。同时，将其中一个优化器的lr设为0可以视为冻结该模块的权重。  
+
+### 4. 评估
+
+使用`eval_AttnFactorVAE.py`进行AttnFactorVAE模型的训练。训练参数有两种载入途径：从外部文件导入配置和使用命令行参数设定配置。  
+
+#### 3.1 从外部文件导入配置
 ```
-train_AttnFactorVAE.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]  
-                        --load_configs LOAD_CONFIGS
-                       [--save_configs SAVE_CONFIGS]
+eval_AttnFactorVAE.py [--log_path LOG_PATH]
+                       --load_configs LOAD_CONFIGS
+                      [--save_configs SAVE_CONFIGS]
 ```
-**参数**  
---log_folder: 日志文件保存路径(默认: "log")  
---log_name: 日志文件名称(默认: train_AttnFactorVAE.log)  
+
+--log_folder: 日志文件保存路径(默认: "log/train_AttnFactorVAE.log")   
 --load_configs: 读取配置文件的路径  
 --save_configs: 保存配置文件的路径(默认保存为 save_folder 中的 config.json)  
 
@@ -336,145 +354,41 @@ train_AttnFactorVAE.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]
 ```
 {
     "Model": {
-        "type": "FactorVAE",
-        "feature_size": 132,
+        "type": "AttnFactorVAE",
+        "fundamental_feature_size": 31,
+        "quantity_price_feature_size": 101,
         "num_gru_layers": 4,
         "gru_hidden_size": 32,
         "hidden_size": 100,
         "latent_size": 48,
         "gru_dropout": 0.1,
-        "std_activation": "softplus",
-        "checkpoint_path": "model\\AttnFactorVAE\\test\\AttnFactorVAE_epoch11.pt"
-    },
-    "VAE_Optimizer": {
-        "optimizer_type": "Lion",
-        "optimizer_kwargs": {},
-        "learning_rate": 0.0001,
-        "lr_scheduler_type": "linear",
-        "lr_scheduler_warmup_steps": 0,
-        "lr_scheduler_num_cycles": 0.5,
-        "lr_scheduler_power": 1.0
-    },
-    "Predictor_Optimizer": {
-        "optimizer_type": "Lion",
-        "optimizer_kwargs": {},
-        "learning_rate": 0.0001,
-        "lr_scheduler_type": "linear",
-        "lr_scheduler_warmup_steps": 0,
-        "lr_scheduler_num_cycles": 0.5,
-        "lr_scheduler_power": 1.0
-    },
-    "Objective_Loss": {
-        "gamma": 1,
-        "scale": 100
+        "std_activation": "softplus"
     },
     "Dataset": {
-        "dataset_path": "data\\dataset_cat.pt",
+        "dataset_path": "data\\dataset.pt",
+        "subset": "test",
         "num_workers": 4,
-        "shuffle": true,
-        "num_batches_per_epoch": 20,
         "mode": "loose_drop",
         "seq_len": 20
     },
-    "Train": {
-        "max_epoches": 40,
-        "grad_clip_norm": 5,
-        "grad_clip_value": -1,
-        "detect_anomaly": true,
+    "Eval": {
         "device": "cuda",
         "dtype": "FP32",
-        "log_folder": "log",
-        "sample_per_batch": 1,
-        "report_per_epoch": 1,
-        "save_per_epoch": 1,
-        "save_folder": "model\\FactorVAE\\test2",
-        "save_name": "FactorVAE",
-        "save_format": ".pt"
+        "metric": "IC",
+        "checkpoints": ["model\\AttnFactorVAE\\test_softmax\\AttnFactorVAE_epoch10.pt"],
+        "checkpoint_folder": "model\\AttnFactorVAE\\test_softmax",
+        "save_folder": "eval\\AttnFactorVAE\\test_softmax",
+        "plot_index": [0]
     }
 }
 ```
 
-#### 使用命令行参数设定配置
+#### 3.2 使用命令行参数设定配置
 ```
-train_FactorVAE.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME] [--save_configs SAVE_CONFIGS]
-                    --dataset_path DATASET_PATH --num_workers NUM_WORKERS --shuffle SHUFFLE --num_batches_per_epoch NUM_BATCHES_PER_EPOCH 
-                    --checkpoint_path CHECKPOINT_PATH --feature_size FEATURE_SIZE --num_gru_layers NUM_GRU_LAYERS --gru_hidden_size GRU_HIDDEN_SIZE --hidden_size HIDDEN_SIZE --latent_size LATENT_SIZE --gru_dropout GRU_DROPOUT --std_activation {exp,softplus}   
-                    --optimizer_type {Adam,AdamW,Lion,SGDNesterov,DAdaptation,Adafactor} --optimizer_kwargs OPTIMIZER_KWARGS [OPTIMIZER_KWARGS ...] --learning_rate LEARNING_RATE --lr_scheduler_type {constant,linear,cosine,cosine_with_restarts,polynomial,adafactor} --lr_scheduler_warmup_steps LR_SCHEDULER_WARMUP_STEPS --lr_scheduler_num_cycles LR_SCHEDULER_NUM_CYCLES --lr_scheduler_power LR_SCHEDULER_POWER 
-                   [--vae_optimizer_type {Adam,AdamW,Lion,SGDNesterov,DAdaptation,Adafactor} --vae_optimizer_kwargs VAE_OPTIMIZER_KWARGS [VAE_OPTIMIZER_KWARGS ...] --vae_learning_rate VAE_LEARNING_RATE --vae_lr_scheduler_type {constant,linear,cosine,cosine_with_restarts,polynomial,adafactor} --vae_lr_scheduler_warmup_steps VAE_LR_SCHEDULER_WARMUP_STEPS --vae_lr_scheduler_num_cycles VAE_LR_SCHEDULER_NUM_CYCLES --vae_lr_scheduler_power VAE_LR_SCHEDULER_POWER]
-                   [--predictor_optimizer_type {Adam,AdamW,Lion,SGDNesterov,DAdaptation,Adafactor} --predictor_optimizer_kwargs PREDICTOR_OPTIMIZER_KWARGS [PREDICTOR_OPTIMIZER_KWARGS ...] --predictor_learning_rate PREDICTOR_LEARNING_RATE --predictor_lr_scheduler_type {constant,linear,cosine,cosine_with_restarts,polynomial,adafactor} --predictor_lr_scheduler_warmup_steps PREDICTOR_LR_SCHEDULER_WARMUP_STEPS --predictor_lr_scheduler_num_cycles PREDICTOR_LR_SCHEDULER_NUM_CYCLES --predictor_lr_scheduler_power PREDICTOR_LR_SCHEDULER_POWER] 
-                    --gamma GAMMA --scale SCALE 
-                    --max_epoches MAX_EPOCHES --grad_clip_norm GRAD_CLIP_NORM --grad_clip_value GRAD_CLIP_VALUE --detect_anomaly DETECT_ANOMALY --dtype {FP32,FP64,FP16,BF16} --device {auto,cuda,cpu} --sample_per_batch SAMPLE_PER_BATCH --report_per_epoch REPORT_PER_EPOCH --save_per_epoch SAVE_PER_EPOCH --save_folder SAVE_FOLDER --save_name SAVE_NAME --save_format SAVE_FORMAT
-
+eval_AttnFactorVAE.py [--log_path LOG_PATH] --save_configs SAVE_CONFIGS
+                      --dataset_path DATASET_PATH --subset SUBSET --num_workers NUM_WORKERS [--checkpoints [CHECKPOINTS ...]] [--checkpoint_folder CHECKPOINT_FOLDER]   
+                      --quantity_price_feature_size QUANTITY_PRICE_FEATURE_SIZE --fundamental_feature_size FUNDAMENTAL_FEATURE_SIZE
+                      --num_gru_layers NUM_GRU_LAYERS --gru_hidden_size GRU_HIDDEN_SIZE --hidden_size HIDDEN_SIZE --latent_size LATENT_SIZE --std_activation STD_ACTIVATION 
+                      --dtype {FP32,FP64,FP16,BF16} --device {auto,cuda,cpu}  --metric METRIC [--plot_index PLOT_INDEX [PLOT_INDEX ...]] --save_folder SAVE_FOLDER
 ```
 
-
-该脚本接受多种命令行参数来配置训练过程,以下是关键参数的简要说明: 
-
-**通用参数**  
---log_folder: 日志文件保存路径(默认: "log")  
---log_name: 日志文件名称(默认: train_FactorVAE.log)  
---save_configs: 保存配置文件的路径(默认保存为 save_folder 中的 config.json)  
-
-**数据加载参数**  
---dataset_path: 数据集 .pt 文件的路径  
---num_workers: 数据加载时使用的子进程数量(默认: 4)  
---shuffle: 是否在加载数据时打乱顺序(默认: True)  
---num_batches_per_epoch: 每个 epoch 中从所有批次中采样的批次数量(默认: -1,表示使用所有批次)  
-
-**模型参数**  
---checkpoint_path: 加载 checkpoint 的路径(可选)  
---quantity_price_feature_size: 量价特征的输入维度  
---fundamental_feature_size: 基本面特征的输入维度  
---num_gru_layers: GRU层数  
---gru_hidden_size: GRU每层的隐藏层维度  
---hidden_size: VAE编码器、预测器和解码器的隐藏层维度  
---latent_size: VAE编码器、预测器和解码器的潜在空间维度(因子数量)   
---gru_dropout: GRU层的 dropout 概率(默认: 0.1)  
---std_activation: 标准差计算的激活函数(默认: exp, 可选: exp, softplus)  
-
-**优化器参数**  
---optimizer_type: 优化器类型(默认: Lion,可选: Adam、AdamW、Lion、SGDNesterov、DAdaptation、Adafactor)   
---optimizer_kwargs: 优化器的其他参数。可以以关键字参数的方式传入。(可选)  
---learning_rate: 优化器的学习率(默认: 0.001)  
---lr_scheduler_type: 学习率调度器类型(默认: constant)  
---lr_scheduler_warmup_steps: 学习率调度器预热步数(默认: 0)  
---lr_scheduler_num_cycles: cosine学习率调度中的波数。(默认为 0.5)  
---lr_scheduler_power polynomial学习率调度中多项式的幂。(默认为 1)  
-
-你也可以分别指定VAE模块(包括feature_extractor, encoder和decoder)和predictor模块的优化器参数。这两个模块会使用不同的优化器进行参数的更新。在指定上述参数时,相当于同时将相同参数赋给VAE模块和predictor模块的优化器。  
-
---vae_optimizer_type: VAE优化器类型(默认: Lion,可选: Adam、AdamW、Lion、SGDNesterov、DAdaptation、Adafactor)   
---vae_optimizer_kwargs: VAE优化器的其他参数。可以以关键字参数的方式传入。(可选)  
---vae_learning_rate: VAE优化器的学习率(默认: 0.001)  
---vae_lr_scheduler_type: VAE学习率调度器类型(默认: constant)  
---vae_lr_scheduler_warmup_steps: VAE学习率调度器预热步数(默认: 0)  
---vae_lr_scheduler_num_cycles: 使用cosine类型时,VAE优化器学习率调度中的波数。(默认为 0.5)  
---vae_lr_scheduler_power 使用polynomial类型时,VAE优化器学习率调度中多项式的幂。(默认为 1)  
-
---predictor_optimizer_type: predictor优化器类型(默认: Lion, 可选: Adam、AdamW、Lion、SGDNesterov、DAdaptation、Adafactor)   
---predictor_optimizer_kwargs: predictor优化器的其他参数。可以以关键字参数的方式传入。(可选)  
---predictor_learning_rate: predictor优化器的学习率(默认: 0.001)  
---predictor_lr_scheduler_type: predictor学习率调度器类型(默认: constant)  
---predictor_lr_scheduler_warmup_steps: predictor学习率调度器预热步数(默认: 0)  
---predictor_lr_scheduler_num_cycles: 使用cosine类型时,predictor优化器学习率调度中的波数。(默认为 0.5)  
---predictor_lr_scheduler_power 使用polynomial类型时,predictor优化器学习率调度中多项式的幂。(默认为 1)  
-
-**训练参数**    
---gamma: KL 散度在损失函数中的系数(默认: 1)   
---scale: MSE 损失的比例系数(默认: 100)  
---max_epoches: 最大训练 epoch 数(默认: 20)  
---grad_clip_value: 梯度裁剪的绝对值限制(-1表示禁用,默认: -1)  
---grad_clip_norm: 梯度裁剪的范数限制(-1表示禁用,默认: -1)  
---detect_anomaly: 是否启用异常检测。为 autograd 引擎启用异常检测,在启用检测的情况下运行正向传递将允许反向传递打印创建失败反向函数的正向操作的回溯,则任何生成nan值的向后计算都会引发错误。(默认: False)
---dtype: 张量数据类型(默认: FP32, 可选: FP32、FP64、FP16、BF16)  
---device: 计算设备(默认: cuda,可选: cuda 或 cpu)  
---sample_per_batch: 每 n 个批次检查一次样本数据(0表示禁用,默认: 0)  
---report_per_epoch: 每 n 个 epoch 报告一次训练损失和验证损失(默认: 1)  
---save_per_epoch: 每 n 个 epoch 保存一次模型权重(默认: 1)  
---save_folder: 保存模型的文件夹路径  
---save_name: 保存模型的名称(默认: Model)
---save_format: 保存模型的文件格式(默认: .pt, 可选: .pt、.safetensor)
-
-#### 其他
-- 权重迁移: checkpoint_path不仅可以指向FactorVAE模型权重文件，也可以指向AttnFactorVAE模型文件。若AttnFactorVAE模型文件目录下存在配置文件config.json，则检查之，若配置支持迁移，则会加载AttnFactorVAE模型中的encoder、decoder、predictor模块的权重，只随机初始化feature_extractor模块。而若配置不支持或尝试加载模型权重失败，则不会进行权重加载。
-- 多优化器：设置多个优化器对模型的不同模块进行优化并不会改变张量的计算图和梯度的值，但对于一些内部保存全局动量的优化器如Adam，这部分的值可能会有一点差异，会与单一的全局优化器有区别。简单地，将VAE模块和Predictor模块的优化器参数设置为相同的参数（我们提供了快速这样实现的arguments选项）可以近似地视为设置了一个单一全局优化器。

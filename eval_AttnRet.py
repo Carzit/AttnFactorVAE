@@ -2,7 +2,6 @@ import os
 import sys
 import logging
 import argparse
-from numbers import Number
 from typing import List, Dict, Tuple, Optional, Literal, Union, Any, Callable
 
 import csv
@@ -208,7 +207,7 @@ class AttnRetEvaluator:
                 self.visualize(checkpoint_path=checkpoint, idx=idx)
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="AttnRet Eval")
+    parser = argparse.ArgumentParser(description="AttnRet Evalution")
 
     parser.add_argument("--log_path", type=str, default="log/eval_AttnRet.log", help="Path of log file. Default `log/eval_AttnRet.log`")
 

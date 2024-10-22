@@ -196,9 +196,9 @@ def parse_args():
 
     parser.add_argument("--log_path", type=str, default="log/data_construct.log", help="Path of log file. Default `log/data_construct.log`")
 
-    parser.add_argument("-q", "--quantity_price_factor_folder", type=str, required=True, help="Path of folder for Quantity-Price Factor pickle files")
-    parser.add_argument("-f", "--fundamental_factor_folder", type=str, required=True, help="Path of folder for Fundamental Factor pickle files")
-    parser.add_argument("-l", "--label_folder", type=str, required=True, help="Path of folder for label pickle files")
+    parser.add_argument("-q", "--quantity_price_factor_folder", type=str, required=True, help="Path of folder for quantity-price factor files")
+    parser.add_argument("-f", "--fundamental_factor_folder", type=str, required=True, help="Path of folder for fundamental factor files")
+    parser.add_argument("-l", "--label_folder", type=str, required=True, help="Path of folder for label files")
     parser.add_argument("-s", "--save_folder", type=str, required=True, help="Path of folder for Processor to save processed result in subdir `alpha` and `label`")
     parser.add_argument("--read_format", type=str, default="pkl", help="File format to read, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
     parser.add_argument("--save_format", type=str, default="pkl", help="File format to save, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
@@ -264,3 +264,5 @@ if __name__ == "__main__":
     logger.info(f"Label Date Data Saved to `{os.path.join(args.save_folder, 'label')}`")
     
     logger.info("Data Construct Accomplished")
+
+# example: python data_construct.py -q "data\raw\Alpha101" -f "data\raw\Fundamental" -l "data\raw\label" -s "data\preprocess"

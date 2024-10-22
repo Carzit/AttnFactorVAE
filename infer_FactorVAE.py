@@ -162,7 +162,7 @@ class FactorVAEInfer:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="FactorVAE Infer")
+    parser = argparse.ArgumentParser(description="FactorVAE Inference")
 
     parser.add_argument("--log_path", type=str, default="log/infer_FactorVAE.log", help="Path of log file. Default `log/infer_FactorVAE.log`")
 

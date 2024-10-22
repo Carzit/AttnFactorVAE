@@ -163,7 +163,7 @@ class AttnFactorVAEInfer:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="AttnFactorVAE Infer")
+    parser = argparse.ArgumentParser(description="AttnFactorVAE Inference")
 
     parser.add_argument("--log_path", type=str, default="log/infer_AttnFactorVAE.log", help="Path of log file. Default `log/infer_AttnFactorVAE.log`")
 

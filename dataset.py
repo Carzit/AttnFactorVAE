@@ -378,12 +378,12 @@ def parse_args():
 
     parser.add_argument("--log_path", type=str, default="log/dataset.log", help="Path of log file. Default `log/dataset.log`")
 
-    parser.add_argument("--quantity_price_feature_dir", type=str, default=None, help="Path of folder for quantity-price feature data files")
-    parser.add_argument("--fundamental_feature_dir", type=str, default=None, help="Path of folder for fundamental feature data files")
-    parser.add_argument("--label_dir", type=str, default=None, help="Path of folder for label data files")
-    parser.add_argument("--data_dir", type=str, default=None, help="Path of data folder. Equal to specify quantity-price data dir as `DATA_DIR/quantity_price_feature`, fundamental data folder as `DATA_DIR/fundamental_feature` and label as `DATA_DIR/label`.")
+    parser.add_argument("--quantity_price_feature_dir", type=str, default=None, help="Path of folder for preprocessed quantity-price feature data files")
+    parser.add_argument("--fundamental_feature_dir", type=str, default=None, help="Path of folder for preprocessed fundamental feature data files")
+    parser.add_argument("--label_dir", type=str, default=None, help="Path of folder for preprocessed label data files")
+    parser.add_argument("--data_dir", type=str, default=None, help="Path of preprocessed data folder. Equal to specify quantity-price data dir as `DATA_DIR/quantity_price_feature`, fundamental data folder as `DATA_DIR/fundamental_feature` and label as `DATA_DIR/label`.")
 
-    parser.add_argument("--file_format", type=str, default="pkl", choices=["csv", "pkl", "parquet", "feather"], help="File format to read, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
+    parser.add_argument("--file_format", type=str, default="pkl", choices=["csv", "pkl", "parquet", "feather"], help="Format of file to read, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
     parser.add_argument("--label_name", type=str, required=True, help="Target label name (col name in y files)")
 
     parser.add_argument("--split_ratio", type=float, nargs=3, default=[0.7, 0.2, 0.1], help="Split ratio for train-validation-test. Default 0.7, 0.2, 0.1")
@@ -438,15 +438,7 @@ if __name__ == "__main__":
     except:
         pass
 
-# python dataset.py --x_folder "D:\PycharmProjects\SWHY\data\preprocess\alpha" --y_folder "D:\PycharmProjects\SWHY\data\preprocess\label" --label_name "ret10" --train_seq_len 20 --save_path "D:\PycharmProjects\SWHY\data\preprocess\dataset.pt"
-
-# python dataset.py --x_folder "D:\PycharmProjects\SWHY\data\preprocess\alpha_cs_zscore" --y_folder "D:\PycharmProjects\SWHY\data\preprocess\label" --label_name "ret10" --train_seq_len 20 --save_path "D:\PycharmProjects\SWHY\data\preprocess\dataset_cs_zscore.pt"
-
-# python dataset.py --x_folder "D:\PycharmProjects\SWHY\data\preprocess\alpha" --y_folder "D:\PycharmProjects\SWHY\data\preprocess\label" --label_name "ret10" --train_seq_len 20 --save_path "D:\PycharmProjects\SWHY\data\preprocess\dataset.pt" --mask_len 10
-
-# python dataset.py --data_dir "data" --label_name "ret10" --train_seq_len 20 --save_path "data/dataset.pt" --mask_len 10 --mode "loose_drop" --log_folder "log"
-
-##
+#
 
 
 
