@@ -338,14 +338,14 @@ train_AttnFactorVAE.py [--log_path LOG_PATH] [--save_configs SAVE_CONFIGS]
 
 使用`eval_AttnFactorVAE.py`进行AttnFactorVAE模型的训练。训练参数有两种载入途径：从外部文件导入配置和使用命令行参数设定配置。  
 
-#### 3.1 从外部文件导入配置
+#### 4.1 从外部文件导入配置
 ```
 eval_AttnFactorVAE.py [--log_path LOG_PATH]
                        --load_configs LOAD_CONFIGS
                       [--save_configs SAVE_CONFIGS]
 ```
 
---log_folder: 日志文件保存路径(默认: "log/train_AttnFactorVAE.log")   
+--log_folder: 日志文件保存路径(默认: "log/eval_AttnFactorVAE.log")   
 --load_configs: 读取配置文件的路径  
 --save_configs: 保存配置文件的路径(默认保存为 save_folder 中的 config.json)  
 
@@ -383,12 +383,176 @@ eval_AttnFactorVAE.py [--log_path LOG_PATH]
 }
 ```
 
-#### 3.2 使用命令行参数设定配置
+#### 4.2 使用命令行参数设定配置
 ```
 eval_AttnFactorVAE.py [--log_path LOG_PATH] --save_configs SAVE_CONFIGS
                       --dataset_path DATASET_PATH --subset SUBSET --num_workers NUM_WORKERS [--checkpoints [CHECKPOINTS ...]] [--checkpoint_folder CHECKPOINT_FOLDER]   
                       --quantity_price_feature_size QUANTITY_PRICE_FEATURE_SIZE --fundamental_feature_size FUNDAMENTAL_FEATURE_SIZE
                       --num_gru_layers NUM_GRU_LAYERS --gru_hidden_size GRU_HIDDEN_SIZE --hidden_size HIDDEN_SIZE --latent_size LATENT_SIZE --std_activation STD_ACTIVATION 
-                      --dtype {FP32,FP64,FP16,BF16} --device {auto,cuda,cpu}  --metric METRIC [--plot_index PLOT_INDEX [PLOT_INDEX ...]] --save_folder SAVE_FOLDER
+                      --dtype {FP32,FP64,FP16,BF16} --device {auto,cuda,cpu}  --metric {MSE,IC,RankIC,ICIR,RankICIR} [--plot_index PLOT_INDEX [PLOT_INDEX ...]] --save_folder SAVE_FOLDER
 ```
 
+该脚本接受多种命令行参数来配置训练过程,以下是关键参数的简要说明: 
+
+**通用参数**  
+--log_path: 日志文件保存路径(默认: "log/eval_AttnFactorVAE.log")   
+--save_configs: 保存配置文件的路径(默认保存为 save_folder 中的 config.json)  
+
+**数据加载参数**  
+--dataset_path: 数据集 .pt 文件的路径   
+--subset: 拆分后的数据子集(默认: test,可选: train、val、test)   
+--num_workers: 数据加载时使用的子进程数量(默认: 4)
+
+**模型参数**  
+--quantity_price_feature_size: 量价特征的输入维度  
+--fundamental_feature_size: 基本面特征的输入维度  
+--num_gru_layers: GRU层数  
+--gru_hidden_size: GRU每层的隐藏层维度  
+--hidden_size: VAE编码器、预测器和解码器的隐藏层维度  
+--latent_size: VAE编码器、预测器和解码器的潜在空间维度(因子数量)   
+--std_activation: 标准差计算的激活函数(默认: exp, 可选: exp, softplus)  
+
+**评估参数**    
+--checkpoints: 加载 checkpoint 的路径(可选, 可以传入一个或多个地址)
+--checkpoint_folder: checkpoint文件夹路径(可选，若指定则相当于checkpoints即为checkpoint_folder目录下所有pt文件和safetensors文件)
+--dtype: 张量数据类型(默认: FP32, 可选: FP32、FP64、FP16、BF16)  
+--device: 计算设备(默认: cuda, 可选: cuda 或 cpu)  
+--metric: 评估度量(默认: IC, 可选: MSE, IC, RankIC, ICIR, RankIC)  
+--plot_index：绘图索引(默认: 0, 可以传入一个或多个序号)  
+--save_folder: 保存评估结果表格与可视化图像的文件夹路径  
+
+#### 4.3 AttnRet和FactorVAE
+相似地，为了方便进行模型性能的比较，我们同时提供了AttnRet(RiskAttention)和FactorVAE模型的评估代码：`eval_AttnRet.py`和`eval_FactorVAE.py`。使用方式与`eval_AttnFactorVAE.py`相同。  
+
+但注意，由于模型不尽相同，模型相关的超参数存在差异。具体地表现为：
+- AttnRet模型由于将VAE模块替换为MLP,因此没有AttnFactorVAE模型中的hidden_size, latent_size和std_activation参数，而是新增了num_fc_layers参数；
+- FactorVAE模型则因为使用无注意力机制的特征提取器，因此不对feature种类进行区分，因此没有AttnFactorVAE模型中的quantity_price_feature_size和fundamental_feature_size参数，而是使用feature_size参数（这个参数的值即quantity_price_feature_size和fundamental_feature_size参数之和）。
+
+另外，模型不再需要dropout相关的参数：在评估时所有dropout会冻结为0.
+
+#### 4.4 其他
+- 评估度量： 
+- - `MSE`即预测结果与真实值的平方差之均值
+- - `IC`为每个batch上(每个交易日)预测结果与真实值的Pearson相关系数之均值。
+$$
+\text{IC}_s = \frac{(r_{\hat{y}_s} - \mathbb{E}[r_{\hat{y}_s}])^T (r_{y_s} - \mathbb{E}[r_{y_s}])}{\text{std}(r_{\hat{y}_s}) \cdot \text{std}(r_{y_s})}
+$$
+$$
+\text{IC} = \mathbb{E}[\text{IC}_s] = \frac{1}{T_{\text{test}}} \sum_{s=1}^{T_{\text{test}}} \text{IC}_s
+$$
+- - `RankIC`为每个batch上(每个交易日)预测结果与真实值的Spearman相关系数之均值。
+$$
+\text{RankIC}_s = \frac{(\text{rank}(r_{\hat{y}_s}) - \mathbb{E}[\text{rank}(r_{\hat{y}_s})])^T (\text{rank}(r_{y_s}) - \mathbb{E}[\text{rank}(r_{y_s})])}
+{\text{std}(\text{rank}(r_{\hat{y}_s})) \cdot \text{std}(\text{rank}(r_{y_s}))}
+$$
+$$
+\text{RankIC} = \mathbb{E}[\text{RankIC}_s] = \frac{1}{T_{\text{test}}} \sum_{s=1}^{T_{\text{test}}} \text{RankIC}_s
+$$
+- - `ICIR`为每个batch上(每个交易日)预测结果与真实值的Pearson相关系数之均值除以其标准差。
+$$
+\text{ICIR} = \frac{\mathbb{E}[\text{IC}_s]}{\text{std}(\text{IC}_s)}
+$$
+- - `RankICIR`为每个batch上(每个交易日)预测结果与真实值的Spearman相关系数之均值除以其标准差。
+$$
+\text{RankICIR} = \frac{\mathbb{E}[\text{RankIC}_s]}{\text{std}(\text{RankIC}_s)}
+$$
+
+### 5. 推理
+
+使用`eval_AttnFactorVAE.py`进行AttnFactorVAE模型的训练。训练参数有两种载入途径：从外部文件导入配置和使用命令行参数设定配置。  
+
+#### 5.1 从外部文件导入配置
+```
+infer_AttnFactorVAE.py [--log_path LOG_PATH]
+                       --load_configs LOAD_CONFIGS
+                       [--save_configs SAVE_CONFIGS]
+```
+
+--log_folder: 日志文件保存路径(默认: "log/infer_AttnFactorVAE.log")   
+--load_configs: 读取配置文件的路径  
+--save_configs: 保存配置文件的路径(默认保存为 save_folder 中的 config.json)  
+
+
+配置文件示例: 
+```
+{
+    "Model": {
+        "type": "AttnFactorVAE",
+        "fundamental_feature_size": 31,
+        "quantity_price_feature_size": 101,
+        "num_gru_layers": 4,
+        "gru_hidden_size": 32,
+        "hidden_size": 100,
+        "latent_size": 48,
+        "gru_dropout": 0.1,
+        "std_activation": "softplus",
+        "checkpoint_path": "model\\AttnFactorVAE\\test_softmax\\AttnFactorVAE_epoch11.pt"
+    },
+    "Dataset": {
+        "dataset_path": "data\\dataset_loose_drop.pt",
+        "subset": "test",
+        "num_workers": 4,
+        "mode": "loose_drop",
+        "seq_len": 20
+    },
+    "Infer": {
+        "device": "cuda",
+        "dtype": "FP32",
+        "save_format": "csv",
+        "save_folder": "infer\\AttnFactorVAE\\test"
+    }
+}
+```
+
+#### 5.2 使用命令行参数设定配置
+```
+infer_AttnFactorVAE.py [--log_path LOG_PATH] [--save_configs SAVE_CONFIGS] 
+                       --dataset_path DATASET_PATH [--subset SUBSET] [--num_workers NUM_WORKERS] 
+                       --quantity_price_feature_size QUANTITY_PRICE_FEATURE_SIZE --fundamental_feature_size FUNDAMENTAL_FEATURE_SIZE --num_gru_layers NUM_GRU_LAYERS --gru_hidden_size GRU_HIDDEN_SIZE --hidden_size HIDDEN_SIZE --latent_size LATENT_SIZE [--std_activation {exp,softplus}] --checkpoint_path CHECKPOINT_PATH 
+                       [--dtype {FP32,FP64,FP16,BF16}] -[-device {auto,cuda,cpu}] --save_folder SAVE_FOLDER [--save_format {csv,pkl,parquet,feather}]
+```
+
+该脚本接受多种命令行参数来配置训练过程,以下是关键参数的简要说明: 
+
+**通用参数**  
+--log_path: 日志文件保存路径(默认: "log/eval_AttnFactorVAE.log")   
+--save_configs: 保存配置文件的路径(默认保存为 save_folder 中的 config.json)  
+
+**数据加载参数**  
+--dataset_path: 数据集 .pt 文件的路径   
+--subset: 拆分后的数据子集(默认: test,可选: train、val、test)   
+--num_workers: 数据加载时使用的子进程数量(默认: 4)
+
+**模型参数**  
+--quantity_price_feature_size: 量价特征的输入维度  
+--fundamental_feature_size: 基本面特征的输入维度  
+--num_gru_layers: GRU层数  
+--gru_hidden_size: GRU每层的隐藏层维度  
+--hidden_size: VAE编码器、预测器和解码器的隐藏层维度  
+--latent_size: VAE编码器、预测器和解码器的潜在空间维度(因子数量)     
+--std_activation: 标准差计算的激活函数(默认: exp, 可选: exp, softplus)  
+
+**评估参数**    
+--checkpoints: 加载 checkpoint 的路径(可选, 可以传入一个或多个地址)
+--checkpoint_folder: checkpoint文件夹路径(可选，若指定则相当于checkpoints即为checkpoint_folder目录下所有pt文件和safetensors文件)
+--dtype: 张量数据类型(默认: FP32, 可选: FP32、FP64、FP16、BF16)  
+--device: 计算设备(默认: cuda, 可选: cuda 或 cpu)  
+--save_folder: 保存推理结果的文件夹路径  
+--save_folder: 保存推理结果的文件格式(默认: pkl, 可选: csv, pkl, parquet, feather)   
+
+#### 5.3 AttnRet和FactorVAE
+相似地，为了方便进行模型性能的比较，我们同时提供了AttnRet(RiskAttention)和FactorVAE模型的推理代码：`infer_AttnRet.py`和`infer_FactorVAE.py`。使用方式与`infer_AttnFactorVAE.py`相同。  
+
+但注意，由于模型不尽相同，模型相关的超参数存在差异。具体地表现为：
+- AttnRet模型由于将VAE模块替换为MLP,因此没有AttnFactorVAE模型中的hidden_size, latent_size和std_activation参数，而是新增了num_fc_layers参数；
+- FactorVAE模型则因为使用无注意力机制的特征提取器，因此不对feature种类进行区分，因此没有AttnFactorVAE模型中的quantity_price_feature_size和fundamental_feature_size参数，而是使用feature_size参数（这个参数的值即quantity_price_feature_size和fundamental_feature_size参数之和）。
+
+另外，模型不再需要dropout相关的参数：在评估时所有dropout会冻结为0.
+
+
+## 相关工作
+-  [FactorVAE: A Probabilistic Dynamic Factor Model Based on Variational
+Autoencoder for Predicting Cross-Sectional Stock Returns.](https://ojs.aaai.org/index.php/AAAI/article/view/20369)
+Yitong Duan, Lei Wang, Qizhong Zhang, Jian Li
+- 基于风险注意力模型的图神经网络因子挖掘
+东方证券金融工程与FOF团队 杨怡玲、薛耕

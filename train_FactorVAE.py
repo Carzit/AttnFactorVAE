@@ -339,7 +339,7 @@ def get_parser() -> argparse.Namespace:
     parser.add_argument("--hidden_size", type=int, help="Hidden size of FactorVAE(Encoder, Pedictor and Decoder), i.e. num of portfolios.")
     parser.add_argument("--latent_size", type=int, help="Latent size of FactorVAE(Encoder, Pedictor and Decoder), i.e. num of factors.")
     parser.add_argument("--gru_dropout", type=float, default=0.1, help="Dropout probs in gru layers. Default 0.1")
-    parser.add_argument("--std_activation", type=str, default="exp", choices=["exp", "softplus"], help="Activation function for standard deviation calculation, literally `exp` or `softplus`. Default `exp`")
+    parser.add_argument("--std_activation", type=str, default="exp", choices=["exp", "softplus"], help="Activation function for standard deviation activation, literally `exp` or `softplus`. Default `exp`")
 
     # general optimizer config
     parser.add_argument("--optimizer_type", type=str, default=None, choices=["Adam", "AdamW", "Lion", "SGDNesterov", "DAdaptation", "Adafactor"], help="Optimizer for training. Literally `Adam`, `AdamW`, `Lion`, `SGDNesterov`, `DAdaptation` or `Adafactor`. Default `Lion`")

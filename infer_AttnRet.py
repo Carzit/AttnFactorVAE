@@ -187,7 +187,7 @@ def parse_args():
     parser.add_argument("--dtype", type=str, default="FP32", choices=["FP32", "FP64", "FP16", "BF16"], help="Dtype of data and weight tensor. Literally `FP32`, `FP64`, `FP16` or `BF16`. Default `FP32`")
     parser.add_argument("--device", type=str, default="cuda", choices=["auto", "cuda", "cpu"], help="Device to take calculation. Literally `cpu` or `cuda`. Default `cuda`")
     parser.add_argument("--save_folder", type=str, default=None, help="Folder to save plot figures")
-    parser.add_argument("--save_format", type=str, default="pkl", help="File format to save, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
+    parser.add_argument("--save_format", type=str, default="pkl", choices=["csv", "pkl", "parquet", "feather"], help="File format to save, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
 
     return parser.parse_args()
 

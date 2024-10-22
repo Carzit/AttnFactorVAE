@@ -159,6 +159,8 @@ class AttnRetEvaluator:
             self.pred_eval_func = PearsonCorr()
         elif self.metric == "RankIC" or self.metric == "RankICIR":
             self.pred_eval_func = SpearmanCorr()
+        else:
+            raise ValueError(f"Unsupported metric `{self.metric}`.")
         
         self.pred_scores = []
         self.y_true_list = []
@@ -182,7 +184,7 @@ class AttnRetEvaluator:
                     self.y_pred_list.append(y_pred)
         if self.metric == "MSE" or self.metric == "IC" or self.metric == "RankIC":
             y_pred_score = accumulator.mean()
-        elif self.metric == "ICIR" or self.metric == "Rank_ICIR":
+        elif self.metric == "ICIR" or self.metric == "RankICIR":
             y_pred_score = accumulator.mean() / accumulator.std()
         self.logger.info(f"{checkpoint_path[checkpoint_path.find('epoch'):checkpoint_path.find('.')]} {self.metric} Score: {y_pred_score}")
         with open(os.path.join(self.save_folder, f"{self.metric}_score.csv"), "a") as f:
@@ -231,7 +233,7 @@ def parse_args():
     # eval config
     parser.add_argument("--dtype", type=str, default="FP32", choices=["FP32", "FP64", "FP16", "BF16"], help="Dtype of data and weight tensor. Literally `FP32`, `FP64`, `FP16` or `BF16`. Default `FP32`")
     parser.add_argument("--device", type=str, default="cuda", choices=["auto", "cuda", "cpu"], help="Device to take calculation. Literally `cpu` or `cuda`. Default `cuda`")
-    parser.add_argument("--metric", type=str, default="IC", help="Eval metric type, literally `MSE`, `IC`, `Rank_IC`, `ICIR` or `Rank_ICIR`. Default `IC`. ")
+    parser.add_argument("--metric", type=str, default="IC", choices=["MSE", "IC", "RankIC", "ICIR", "RankIC"], help="Eval metric type, literally `MSE`, `IC`, `RankIC`, `ICIR` or `RankICIR`. Default `IC`")
     parser.add_argument("--plot_index", type=int, nargs="+", default=[0], help="Stock index to plot Comparison of y_true, y_hat, and y_pred. Default 0")
     parser.add_argument("--save_folder", type=str, default=None, help="Folder to save plot figures")
 

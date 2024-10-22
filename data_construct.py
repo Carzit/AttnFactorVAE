@@ -200,8 +200,8 @@ def parse_args():
     parser.add_argument("-f", "--fundamental_factor_folder", type=str, required=True, help="Path of folder for fundamental factor files")
     parser.add_argument("-l", "--label_folder", type=str, required=True, help="Path of folder for label files")
     parser.add_argument("-s", "--save_folder", type=str, required=True, help="Path of folder for Processor to save processed result in subdir `alpha` and `label`")
-    parser.add_argument("--read_format", type=str, default="pkl", help="File format to read, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
-    parser.add_argument("--save_format", type=str, default="pkl", help="File format to save, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
+    parser.add_argument("--read_format", type=str, default="pkl", choices=["csv", "pkl", "parquet", "feather"], help="File format to read, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
+    parser.add_argument("--save_format", type=str, default="pkl", choices=["csv", "pkl", "parquet", "feather"], help="File format to save, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
 
     return parser.parse_args()
 

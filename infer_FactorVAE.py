@@ -180,14 +180,14 @@ def parse_args():
     parser.add_argument("--gru_hidden_size", type=int, help="Hidden size of each GRU layer. num_gru_layers * gru_hidden_size i.e. the input size of FactorEncoder and Factor Predictor.")
     parser.add_argument("--hidden_size", type=int, help="Hidden size of FactorVAE(Encoder, Pedictor and Decoder), i.e. num of portfolios.")
     parser.add_argument("--latent_size", type=int, help="Latent size of FactorVAE(Encoder, Pedictor and Decoder), i.e. num of factors.")
-    parser.add_argument("--std_activation", type=str, default="exp", help="Activation function for standard deviation calculation, literally `exp` or `softplus`. Default `exp`")
+    parser.add_argument("--std_activation", type=str, default="exp", choices=["exp", "softplus"], help="Activation function for standard deviation activation, literally `exp` or `softplus`. Default `exp`")
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Folder Path of checkpoint")
     
     # infer config
     parser.add_argument("--dtype", type=str, default="FP32", choices=["FP32", "FP64", "FP16", "BF16"], help="Dtype of data and weight tensor. Literally `FP32`, `FP64`, `FP16` or `BF16`. Default `FP32`")
     parser.add_argument("--device", type=str, default="cuda", choices=["auto", "cuda", "cpu"], help="Device to take calculation. Literally `cpu` or `cuda`. Default `cuda`")
     parser.add_argument("--save_folder", type=str, default=None, help="Folder to save plot figures")
-    parser.add_argument("--save_format", type=str, default="pkl", help="File format to save, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
+    parser.add_argument("--save_format", type=str, default="pkl", choices=["csv", "pkl", "parquet", "feather"], help="File format to save, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`")
 
     return parser.parse_args()
 
