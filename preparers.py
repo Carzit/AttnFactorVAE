@@ -103,7 +103,7 @@ class Model_Preparer(Preparer):
         if configs["Model"]["type"] == self.type:
             return configs
         else:
-            raise TypeError(f"Wrong config model type `{configs["Model"]["type"]}` mismatch `{self.type}`")
+            raise TypeError(f"Wrong config model type `{configs['Model']['type']}` mismatch `{self.type}`")
     
 
 class Model_AttnFactorVAE_Preparer(Model_Preparer):

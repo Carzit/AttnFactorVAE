@@ -1,7 +1,7 @@
 
 # AttnFactorVAE
 
-
+[![Open Demo](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Carzit/AttnFactorVAE/blob/dev/demo/colab_demo.ipynb)
 
 ## 数据
 待处理文件应以因子名为文件名,以股票代码为列名,以交易日期为行名。示例如下: 

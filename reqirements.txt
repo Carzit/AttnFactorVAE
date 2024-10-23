@@ -2,6 +2,7 @@ pandas
 numpy
 scipy
 tqdm
+colorama
 
 torch
 tensorboard
@@ -11,5 +12,4 @@ lion-pytorch
 dadaptation
 diffusers
 transformers
-
 toml

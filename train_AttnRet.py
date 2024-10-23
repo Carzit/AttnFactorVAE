@@ -141,7 +141,7 @@ class AttnRetTrainer:
                          detect_anomaly=args.detect_anomaly, 
                          device=utils.str2device(args.device),
                          dtype=utils.str2dtype(args.dtype),
-                         log_folder=args.log_folder,
+                         log_folder=os.path.dirname(args.log_path),
                          sample_per_batch=args.sample_per_batch,
                          report_per_epoch=args.report_per_epoch,
                          save_per_epoch=args.save_per_epoch,

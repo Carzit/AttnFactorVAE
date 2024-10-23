@@ -79,7 +79,7 @@ class AttnRetEvaluator:
                                         quantity_price_feature_size=eval_configs["Model"]["quantity_price_feature_size"],
                                         num_gru_layers=eval_configs["Model"]["num_gru_layers"],
                                         gru_hidden_size=eval_configs["Model"]["gru_hidden_size"],
-                                        gru_dropout=eval_configs["Model"]["gru_dropout"],
+                                        gru_dropout=0,
                                         num_fc_layers=eval_configs["Model"]["num_fc_layers"])
         self.dataloader_preparer.set_configs(dataset_path=eval_configs["Dataset"]["dataset_path"],
                                              num_workers=eval_configs["Dataset"]["num_workers"],
@@ -102,7 +102,7 @@ class AttnRetEvaluator:
                                         quantity_price_feature_size=args.quantity_price_feature_size,
                                         num_gru_layers=args.num_gru_layers,
                                         gru_hidden_size=args.gru_hidden_size,
-                                        gru_dropout=args.gru_dropout,
+                                        gru_dropout=0,
                                         num_fc_layers=args.num_fc_layers)
         self.dataloader_preparer.set_configs(dataset_path=args.dataset_path,
                                              num_workers=args.num_workers,

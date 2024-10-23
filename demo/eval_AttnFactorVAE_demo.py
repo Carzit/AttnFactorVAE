@@ -5,7 +5,7 @@ import argparse
 from typing import List, Dict, Tuple, Optional, Literal, Union, Any, Callable
 
 import csv
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 
 import torch
 import torch.nn as nn
