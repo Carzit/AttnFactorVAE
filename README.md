@@ -138,7 +138,7 @@ dataset.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]
 
 --cat:
 是否将数量-价格特征与基本面特征进行拼接。注意对于FactorVAE模型使用的数据集，该参数应为True；对于AttnFactorVAE和AttnRet模型使用的数据集，该参数应为False。 
-默认值: True  
+默认值: False  
 --dtype:
 数据张量的类型。支持 FP32、FP64、FP16 或 BF16。
 默认值: FP32  
