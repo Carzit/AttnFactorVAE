@@ -61,7 +61,7 @@ class FactorProcessor(Processor):
         return FileData(path=file_path, dataframe=df)
     
     def load_data(self, file_format:str) -> None:
-        # 读取指定文件夹中的所有pkl文件，处理数据并存储在 alpha_data_list 中，同时计算所有文件中共同的日期和股票代码。
+        # 读取指定文件夹中的所有pkl文件，处理数据并存储在 factor_data 中，同时计算所有文件中共同的日期和股票代码。
         file_list = [f for f in os.listdir(self.folder_path) if f.endswith(file_format)]
         
         for file_name in tqdm(file_list):
