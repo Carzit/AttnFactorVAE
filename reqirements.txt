@@ -2,6 +2,8 @@ pandas
 numpy
 scipy
 tqdm
+dask
+dask_ml
 colorama
 
 torch

@@ -41,7 +41,7 @@
 
 ### 1. 数据构建与预处理
 使用`data_construct.py`进行数据构建与预处理。   
-该脚本用于从指定文件夹中预处理包含量价因子、基本面因子和预测目标文件的数据,预处理操作包括股票代码与日期的对齐、数据的拆分组织和数据的标准化(待实现)。处理后的数据将保存在指定的保存文件夹下的对应子目录。
+该脚本用于从指定文件夹中预处理包含量价因子、基本面因子和预测目标文件的数据,预处理操作包括股票代码与日期的对齐以及数据的拆分组织。处理后的数据将保存在指定的保存文件夹下的对应子目录。
 
 ```
 data_construct.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]   
@@ -77,8 +77,47 @@ data_construct.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]
 --save_folder:
 处理后的结果保存的文件夹路径,子目录 quantity_price_feature, fundamental_feature 和 label 将在该文件夹中创建。
 
+### 2. standardization.py
+该工具用于标准化（可选）。有5种可用的标准化形式，包括：
+* 截面Z-Score 标准化（CSZScore） 对所有数据按日期聚合后进行 Z-Score 处理，主要目的在于保证每日横截面数据的可比性。Z-score = (x - μ)/σ
+* 截面排序标准化（CSRank） 对所有数据按日期聚合后进行排序处理，将排序结果作为模型输入。此方法主要目的在于排除异常值的影响，但缺点也很明显，丧失了数据间相对大小关系的刻画。
+* 数据集整体Z-Score标准化（ZScore） 截面标准化会使数据损失时序变化信息，而整个数据集做标准化可以将不同日期的相对大小关系也喂入模型进行学习。当然此处需要注意数据泄露问题，我们使用训练集算出均值和标准差后，将其用于整个数据集进行标准化。
+* 数据集整体 Minmax 标准化（MinMax） 相较于 ZScore 标准化而言，MinMax 能使数据严格限制在规定的上下限范围内，且保留了数据间的大小关系。
+* 数据集整体 Robust Z-Score 标准化（RobustZScore） 由于标准差的计算需要对数据均值偏差进行平方运算，会使数据对极值更敏感。而Mad = Median(|x-Median(x)|)能有效解决这一问题，使得到的均值标准差指标更加稳健。Robust-Z-score = (x - Median(x))/Mad(x)
 
-### 2. dataset.py 
+```
+standardization.py [--log_path LOG_PATH]
+                    --preprocess_data_folder PREPROCESS_DATA_FOLDER
+                    --save_folder SAVE_FOLDER
+                   [--standardization_method {CSZScore,CSRank,ZScore,MinMax,RobustZScore}]
+                   [--read_format {csv,pkl,parquet,feather}]
+                   [--save_format {csv,pkl,parquet,feather}]
+```
+
+#### 可选参数
+--log_path:
+日志文件保存的文件夹路径及文件名。
+默认值："log/standardization.log"
+
+--standardization_method:
+标准化方法。可选CSZScore,CSRank,ZScore,MinMax,RobustZScore。
+
+--read_format:
+输入文件的格式。支持的格式包括 csv、pkl、parquet 和 feather。
+默认值: pkl
+
+--save_format:
+输出文件的格式。支持的格式包括 csv、pkl、parquet 和 feather。
+默认值: pkl
+
+#### 必需参数
+--preprocess_data_folder:
+包含业已预处理数据的文件夹路径。请保证这一文件夹下有fundamental features, quantity prices & labels。
+
+--save_folder:
+保存文件夹路径。将会在该文件夹下自动生成对应的子文件夹。
+
+### 3. dataset.py 
 该工具用于从指定文件夹中获取数量-价格特征数据、基本面特征数据和标签数据,并生成训练、验证和测试数据集。数据集将根据用户指定的比例进行划分,并保存为指定格式的文件。
 
 ```
@@ -104,7 +143,7 @@ dataset.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]
 #### 可选参数
 --log_folder:
 日志文件保存的文件夹路径。
-默认值: "log"  
+默认值: "log"
 --log_name:
 日志文件的名称。
 默认值: "dataset.log"
@@ -158,11 +197,11 @@ dataset.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]
 划分后的数据集train-val-test字典的pt文件保存路径。
 
 
-### 3. 训练
+### 4. 训练
 
 使用`train_AttnFactorVAE.py`进行AttnFactorVAE模型的训练。训练参数有两种载入途径：从外部文件导入配置和使用命令行参数设定配置。  
 
-#### 3.1 从外部文件导入配置
+#### 4.1 从外部文件导入配置
 ```
 train_AttnFactorVAE.py [--log_path LOG_PATH]
                         --load_configs LOAD_CONFIGS
@@ -237,7 +276,7 @@ train_AttnFactorVAE.py [--log_path LOG_PATH]
 }
 ```
 
-#### 3.2 使用命令行参数设定配置
+#### 4.2 使用命令行参数设定配置
 ```
 train_AttnFactorVAE.py [--log_path LOG_PATH] [--save_configs SAVE_CONFIGS]
                         --dataset_path DATASET_PATH --num_workers NUM_WORKERS --shuffle SHUFFLE --num_batches_per_epoch NUM_BATCHES_PER_EPOCH 
@@ -318,7 +357,7 @@ train_AttnFactorVAE.py [--log_path LOG_PATH] [--save_configs SAVE_CONFIGS]
 --save_name: 保存模型的名称(默认: Model)
 --save_format: 保存模型的文件格式(默认: .pt, 可选: .pt、.safetensor)
 
-#### 3.3 AttnRet和FactorVAE
+#### 4.3 AttnRet和FactorVAE
 为了方便进行模型性能的比较，我们同时提供了AttnRet(RiskAttention)和FactorVAE模型的训练代码：`train_AttnRet.py`和`train_FactorVAE.py`。使用方式与`train_AttnFactorVAE.py`相同。  
 
 但注意，由于模型不尽相同，模型相关的超参数存在差异。具体地表现为：
@@ -329,16 +368,16 @@ train_AttnFactorVAE.py [--log_path LOG_PATH] [--save_configs SAVE_CONFIGS]
 您可以查看本repository的configs文件夹下的`config_train_AttnRet.json`和`config_train_FactorVAE.json`配置文件示例；同时，您也可以使用`python train_AttnRet.py`和`python train_FactorVAE.py -h`命令以查看命令行参数的详细信息。在此不做赘述。  
 
 
-#### 3.4 其他
+#### 4.4 其他
 **权重迁移：** 由于AttnFactor, AttnRet和FactorVAE之间的模型架构存在相同的部分，出于加速训练和增加模型可比性的目的，上述模型的训练代码支持不同模型间相同模块部分的权重迁移，包括AttnFactor和AttnRet之间的AttnFeatureExtractor模块、AttnFactorVAE和FactorVAE之间的encoder、decoder和predictor模型。例如，在FactorVAE训练时，checkpoint_path不仅可以指向FactorVAE模型权重文件，也可以指向AttnFactorVAE模型文件。若AttnFactorVAE模型文件目录下存在配置文件config.json，则检查之，若配置支持迁移（形状匹配），则会加载AttnFactorVAE模型中的encoder、decoder、predictor模块的权重，只随机初始化feature_extractor模块。而若配置不支持或尝试加载模型权重失败，则不会进行权重加载。  
 
 **多优化器：** 我们对于AttnFactorVAE和FactorVAE的训练设置了两个优化器，分别对VAE模块(包括attn_feature_extractor/feature_extractor, encoder和decoder模块)和predictor模块进行更新。设置多个优化器对模型的不同模块进行优化并不会改变张量的计算图和梯度的值，但对于一些内部保存全局动量的优化器如Adam，这部分的值可能会有一点差异，会与单一的全局优化器有区别。简单地，将VAE模块和Predictor模块的优化器参数设置为相同的参数（我们提供了快速这样实现的arguments选项）可以近似地视为设置了一个单一全局优化器。同时，将其中一个优化器的lr设为0可以视为冻结该模块的权重。  
 
-### 4. 评估
+### 5. 评估
 
 使用`eval_AttnFactorVAE.py`进行AttnFactorVAE模型的训练。训练参数有两种载入途径：从外部文件导入配置和使用命令行参数设定配置。  
 
-#### 4.1 从外部文件导入配置
+#### 5.1 从外部文件导入配置
 ```
 eval_AttnFactorVAE.py [--log_path LOG_PATH]
                        --load_configs LOAD_CONFIGS
@@ -383,7 +422,7 @@ eval_AttnFactorVAE.py [--log_path LOG_PATH]
 }
 ```
 
-#### 4.2 使用命令行参数设定配置
+#### 5.2 使用命令行参数设定配置
 ```
 eval_AttnFactorVAE.py [--log_path LOG_PATH] --save_configs SAVE_CONFIGS
                       --dataset_path DATASET_PATH --subset SUBSET --num_workers NUM_WORKERS [--checkpoints [CHECKPOINTS ...]] [--checkpoint_folder CHECKPOINT_FOLDER]   
@@ -421,7 +460,7 @@ eval_AttnFactorVAE.py [--log_path LOG_PATH] --save_configs SAVE_CONFIGS
 --plot_index：绘图索引(默认: 0, 可以传入一个或多个序号)  
 --save_folder: 保存评估结果表格与可视化图像的文件夹路径  
 
-#### 4.3 AttnRet和FactorVAE
+#### 5.3 AttnRet和FactorVAE
 相似地，为了方便进行模型性能的比较，我们同时提供了AttnRet(RiskAttention)和FactorVAE模型的评估代码：`eval_AttnRet.py`和`eval_FactorVAE.py`。使用方式与`eval_AttnFactorVAE.py`相同。  
 
 但注意，由于模型不尽相同，模型相关的超参数存在差异。具体地表现为：
@@ -430,7 +469,7 @@ eval_AttnFactorVAE.py [--log_path LOG_PATH] --save_configs SAVE_CONFIGS
 
 另外，模型不再需要dropout相关的参数：在评估时所有dropout会冻结为0.
 
-#### 4.4 其他
+#### 5.4 其他
 - 评估度量： 
 - - `MSE`即预测结果与真实值的平方差之均值
 - - `IC`为每个batch上(每个交易日)预测结果与真实值的Pearson相关系数之均值。
@@ -457,11 +496,11 @@ $$
 \text{RankICIR} = \frac{\mathbb{E}[\text{RankIC}_s]}{\text{std}(\text{RankIC}_s)}
 $$
 
-### 5. 推理
+### 6. 推理
 
 使用`eval_AttnFactorVAE.py`进行AttnFactorVAE模型的训练。训练参数有两种载入途径：从外部文件导入配置和使用命令行参数设定配置。  
 
-#### 5.1 从外部文件导入配置
+#### 6.1 从外部文件导入配置
 ```
 infer_AttnFactorVAE.py [--log_path LOG_PATH]
                        --load_configs LOAD_CONFIGS
@@ -504,7 +543,7 @@ infer_AttnFactorVAE.py [--log_path LOG_PATH]
 }
 ```
 
-#### 5.2 使用命令行参数设定配置
+#### 6.2 使用命令行参数设定配置
 ```
 infer_AttnFactorVAE.py [--log_path LOG_PATH] [--save_configs SAVE_CONFIGS] 
                        --dataset_path DATASET_PATH [--subset SUBSET] [--num_workers NUM_WORKERS] 
@@ -540,7 +579,7 @@ infer_AttnFactorVAE.py [--log_path LOG_PATH] [--save_configs SAVE_CONFIGS]
 --save_folder: 保存推理结果的文件夹路径  
 --save_folder: 保存推理结果的文件格式(默认: pkl, 可选: csv, pkl, parquet, feather)   
 
-#### 5.3 AttnRet和FactorVAE
+#### 6.3 AttnRet和FactorVAE
 相似地，为了方便进行模型性能的比较，我们同时提供了AttnRet(RiskAttention)和FactorVAE模型的推理代码：`infer_AttnRet.py`和`infer_FactorVAE.py`。使用方式与`infer_AttnFactorVAE.py`相同。  
 
 但注意，由于模型不尽相同，模型相关的超参数存在差异。具体地表现为：
