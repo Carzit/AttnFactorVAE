@@ -108,17 +108,23 @@ def save_dataframe(df:pd.DataFrame, path:str, format:Literal["csv", "pkl", "parq
     else:
         raise NotImplementedError(f"Unsupported file format `{format}`. The supported file formats include `csv`, `pkl`, `parquet` and `feather`.")
 
-def load_dataframe(path:str, format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> pd.DataFrame:
-    if format == "csv":
+def load_dataframe(path:str, format:Literal["auto", "csv", "pkl", "parquet", "feather"]="auto") -> pd.DataFrame:
+    if format == "auto":
+        _format = os.path.basename(path)[os.path.basename(path).find(".")+1:]
+    else:
+        _format = format
+
+    if _format == "csv":
         df = pd.read_csv(path, index_col=0)
-    elif format ==  "pkl":
+    elif _format ==  "pkl":
         df = pd.read_pickle(path)
-    elif format == "parquet":
+    elif _format == "parquet":
         df = pd.read_parquet(path)
-    elif format == "feather":
+    elif _format == "feather":
         df = pd.read_feather(path)
     else:
-        raise NotImplementedError(f"Unsupported file format `{format}`. The supported file formats include `csv`, `pkl`, `parquet` and `feather`.")
+        print(_format)
+        raise NotImplementedError(f"Unsupported file format `{_format}`. The supported file formats include `csv`, `pkl`, `parquet` and `feather`.")
     return df
 
 def save_checkpoint(model:torch.nn.Module, save_folder:str, save_name:str, save_format:Literal[".pt",".safetensors"]=".pt"):
