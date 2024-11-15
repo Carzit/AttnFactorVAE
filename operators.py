@@ -1,15 +1,15 @@
-import os
-import sys
-import logging
-import argparse
+__all__ = ["Operator", 
+           "Constant", "Add", "Subtract", "Multiply", "Divide", "Power", "And", "Or", "Min", "Max", "TernaryOperator", 
+           "Open", "Close", "High", "Low", "Vol", "Cap", "IndClass",
+           "Returns", "ADV", "DecayLinear", "VWAP", "IndustryNeutralize",
+           "Rank", "Abs", "Log", "Sign", "Scale", "Delay", "Delta", 
+           "Ts_Corr", "Ts_Cov", "Ts_Max", "Ts_Min", "Ts_Argmax", "Ts_Argmin", "Ts_Rank", "Ts_Sum", "Ts_Mean", "Ts_Product", "Ts_Stddev"]
+
 from numbers import Number
 from typing import List, Tuple, Dict, Literal, Optional, Callable, Any, Union
-
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
-
-from preparers import LoggerPreparer
+from sklearn.linear_model import LinearRegression
 import utils
 
 class Operator:
@@ -19,7 +19,6 @@ class Operator:
     def __init__(self):
         self.wrapped_operator:Union["Operator", Tuple["Operator",...]] = None
         self.forward_days_required:int = 0
-        self.backward_days_required:int = 0
 
     def calculate(self, *args, **kwds) -> pd.Series:
         pass
@@ -27,58 +26,84 @@ class Operator:
     def wrap(self, *operator:Union["Operator", Tuple["Operator","Operator"]]) -> None:
         operator = tuple([Constant(o) if isinstance(o, Number) else o for o in operator])
         self.forward_days_required:int = max([o.forward_days_required for o in operator])
-        self.backward_days_required:int = max([o.backward_days_required for o in operator])
         if len(operator) == 1:
             operator = operator[0]
         self.wrapped_operator = operator
 
-    def __add__(self, operator:Union["Operator", Number]):
+    def __add__(self, operator:Union["Operator", Number]) -> "Operator":
         return Add(self, operator)
     
-    def __radd__(self, operator:Union["Operator", Number]):
+    def __radd__(self, operator:Union["Operator", Number]) -> "Operator":
         return Add(operator, self)
     
-    def __sub__(self, operator:Union["Operator", Number]):
+    def __sub__(self, operator:Union["Operator", Number]) -> "Operator":
         return Subtract(self, operator)
     
-    def __rsub__(self, operator:Union["Operator", Number]):
+    def __rsub__(self, operator:Union["Operator", Number]) -> "Operator":
         return Subtract(operator, self)
 
-    def __mul__(self, operator:Union["Operator", Number]):
+    def __mul__(self, operator:Union["Operator", Number]) -> "Operator":
         return Multiply(self, operator)
     
-    def __rsub__(self, operator:Union["Operator", Number]):
+    def __rmul__(self, operator:Union["Operator", Number]) -> "Operator":
         return Multiply(operator, self)
     
-    def __truediv__(self, operator:Union["Operator", Number]):
+    def __rsub__(self, operator:Union["Operator", Number]) -> "Operator":
+        return Multiply(operator, self)
+    
+    def __truediv__(self, operator:Union["Operator", Number]) -> "Operator":
         return Divide(self, operator)
     
-    def __rtruediv__(self, operator:Union["Operator", Number]):
+    def __rtruediv__(self, operator:Union["Operator", Number]) -> "Operator":
         return Divide(operator, self)
 
-    def __pow__(self, operator:Union["Operator", Number]):
+    def __pow__(self, operator:Union["Operator", Number]) -> "Operator":
         return Power(self, operator)
 
-    def __rpow__(self, operator:Union["Operator", Number]):
+    def __rpow__(self, operator:Union["Operator", Number]) -> "Operator":
+        return Power(operator, self)
+    
+    def __xor__(self, operator:Union["Operator", Number]) -> "Operator":
+        return Power(self, operator)
+    
+    def __rxor__(self, operator:Union["Operator", Number]) -> "Operator":
         return Power(operator, self)
 
-    def __lt__(self, operator:Union["Operator", Number]):
+    def __lt__(self, operator:Union["Operator", Number]) -> "Operator":
         return Lessthan(self, operator)
 
-    def __le__(self, operator:Union["Operator", Number]):
+    def __le__(self, operator:Union["Operator", Number]) -> "Operator":
         return LessEqual(self, operator)
 
-    def __gt__(self, operator:Union["Operator", Number]):
+    def __gt__(self, operator:Union["Operator", Number]) -> "Operator":
         return Greaterthan(self, operator)
 
-    def __ge__(self, operator:Union["Operator", Number]):
+    def __ge__(self, operator:Union["Operator", Number]) -> "Operator":
         return LessEqual(self, operator)
 
-    def __eq__(self, operator:Union["Operator", Number]):
+    def __eq__(self, operator:Union["Operator", Number]) -> "Operator":
         return Equal(self, operator)
 
-    def __neq__(self, operator:Union["Operator", Number]):
+    def __neq__(self, operator:Union["Operator", Number]) -> "Operator":
         return NotEqual(self, operator)
+    
+    def __and__(self, operator:Union["Operator", bool]) -> "Operator":
+        return And(self, operator)
+    
+    def __rand__(self, operator:Union["Operator", bool]) -> "Operator":
+        return And(operator, self)
+    
+    def __or__(self, operator:Union["Operator", bool]) -> "Operator":
+        return Or(self, operator)
+    
+    def __ror__(self, operator:Union["Operator", bool]) -> "Operator":
+        return Or(operator, self)
+    
+    def __lshift__(self, d:Number=1) -> "Operator":
+        return Delay(self, d)
+    
+    def __rshift__(self, d:Number=1) -> "Operator":
+        return Delay(self, -d)
         
     def __call__(self, *args, **kwds)->pd.Series:
         return self.calculate(*args, **kwds)
@@ -88,7 +113,7 @@ class Constant(Operator):
         super().__init__()
         self.v = value
     
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->Number:
         return self.v
 
 class InfixOperator(Operator):
@@ -97,59 +122,87 @@ class InfixOperator(Operator):
         self.wrap(operator1, operator2)
 
 class Add(InfixOperator):
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) + operator2.calculate(day_index, file_list)
     
 class Subtract(InfixOperator):
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) - operator2.calculate(day_index, file_list)
     
 class Multiply(InfixOperator):
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) * operator2.calculate(day_index, file_list)
     
 class Divide(InfixOperator):
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) / operator2.calculate(day_index, file_list)
     
 class Power(InfixOperator):
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) ** operator2.calculate(day_index, file_list)
 
 class Greaterthan(InfixOperator):
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) > operator2.calculate(day_index, file_list)
 
 class GreaterEqual(InfixOperator):
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) >= operator2.calculate(day_index, file_list)
 
 class Lessthan(InfixOperator):
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) < operator2.calculate(day_index, file_list)  
 
 class LessEqual(InfixOperator):
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) <= operator2.calculate(day_index, file_list)
 
 class Equal(InfixOperator):
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) == operator2.calculate(day_index, file_list)
 
 class NotEqual(InfixOperator):
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) != operator2.calculate(day_index, file_list)
+
+class Or(InfixOperator):
+    def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
+        operator1, operator2 = self.wrapped_operator
+        return operator1.calculate(day_index, file_list) | operator2.calculate(day_index, file_list)
+    
+class And(InfixOperator):
+    def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
+        operator1, operator2 = self.wrapped_operator
+        return operator1.calculate(day_index, file_list) & operator2.calculate(day_index, file_list)
+
+class Min(Operator):
+    def __init__(self, *operators:Operator):
+        super().__init__()
+        self.wrap(*operators)
+
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
+        _r = [o.calculate(day_index, file_list) for o in self.wrapped_operator]
+        return pd.Series(np.min(_r, axis=0))
+    
+class Max(Operator):
+    def __init__(self, *operators:Operator):
+        super().__init__()
+        self.wrap(*operators)
+
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
+        _r = [o.calculate(day_index, file_list) for o in self.wrapped_operator]
+        return pd.Series(np.max(_r, axis=0))
 
 class TernaryOperator(Operator):
     """三元运算符。类似c语言中的condition_expression ? true_expression : false_expression"""
@@ -157,53 +210,60 @@ class TernaryOperator(Operator):
         super().__init__()
         self.wrap(condition_operator, true_operator, false_operator)
 
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         condition_operator, true_operator, false_operator = self.wrapped_operator
-        return pd.Series(np.where(condition_operator.calculate(day_index, file_list), 
-                        true_operator.calculate(day_index, file_list), 
-                        false_operator.calculate(day_index, file_list)))
+        condition = condition_operator.calculate(day_index, file_list)
+        return condition * true_operator.calculate(day_index, file_list) + (1-condition)*false_operator.calculate(day_index, file_list)
     
 class Open(Operator):
     def __init__(self):
         super().__init__()
     
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         return utils.load_dataframe(path=file_list[day_index])["open"]
     
 class Close(Operator):
     def __init__(self):
         super().__init__()
     
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         return utils.load_dataframe(path=file_list[day_index])["close"]
 
 class High(Operator):
     def __init__(self):
         super().__init__()
     
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         return utils.load_dataframe(path=file_list[day_index])["high"]
     
 class Low(Operator):
     def __init__(self):
         super().__init__()
     
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         return utils.load_dataframe(path=file_list[day_index])["low"]
 
-class Volumn(Operator):
+class Vol(Operator):
     def __init__(self):
         super().__init__()
     
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         return utils.load_dataframe(path=file_list[day_index])["vol"]
 
 class Cap(Operator):
     def __init__(self):
         super().__init__()
     
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         return utils.load_dataframe(path=file_list[day_index])["cap"]
+    
+class IndClass(Operator):
+    def __init__(self, level:Literal["sector", "industry", "subindustry"]):
+        super().__init__()
+        self.level = level
+    
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
+        return utils.load_dataframe(path=file_list[day_index])[f"indclass.{self.level}"]
     
 class Rank(Operator):
     def __init__(self, operator:Operator, ascending=True):
@@ -211,7 +271,7 @@ class Rank(Operator):
         self.ascending=ascending
         self.wrap(operator)
     
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         _r = self.wrapped_operator.calculate(day_index, file_list).rank(method="average", na_option="keep", ascending=self.ascending)
         return _r / _r.sum(skipna=True)
     
@@ -220,7 +280,7 @@ class Abs(Operator):
         super().__init__()
         self.wrap(operator)
     
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         return self.wrapped_operator.calculate(day_index, file_list).abs()
     
 class Log(Operator):
@@ -228,7 +288,7 @@ class Log(Operator):
         super().__init__()
         self.wrap(operator)
     
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         return np.log(self.wrapped_operator.calculate(day_index, file_list))
     
 class Sign(Operator):
@@ -236,7 +296,7 @@ class Sign(Operator):
         super().__init__()
         self.wrap(operator)
     
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         return np.sign(self.wrapped_operator.calculate(day_index, file_list))
 
 class Scale(Operator):
@@ -245,15 +305,15 @@ class Scale(Operator):
         self.a = a
         self.wrap(operator)
     
-    def calculate(self, day_index:int, file_list:List[str]):
+    def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         return self.wrapped_operator.calculate(day_index, file_list) / self.wrapped_operator.calculate(day_index, file_list).sum(skipna=True) * self.a
 
 class Delay(Operator):
     def __init__(self, operator:Operator, d:int=1):
         super().__init__()
-        self.d = d
+        self.d = int(d)
         self.wrap(operator)
-        self.forward_days_required += d
+        self.forward_days_required += int(d)
 
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         return self.wrapped_operator.calculate(day_index-self.d, file_list)
@@ -263,17 +323,17 @@ class Delta(Operator):
         super().__init__()
         self.d = d
         self.wrap(operator)
-        self.forward_days_required += d
+        self.forward_days_required += int(d)
 
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         return self.wrapped_operator.calculate(day_index, file_list) - Delay(self.wrapped_operator, d=self.d).calculate(day_index, file_list)
-    
+
 class Ts_Corr(Operator):
     def __init__(self, operator1:Operator, operator2:Operator, d:int=1):
         super().__init__()
         self.d = int(d)
         self.wrap(operator1, operator2)
-        self.forward_days_required += d
+        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         operator1, operator2 = self.wrapped_operator
@@ -286,7 +346,7 @@ class Ts_Cov(Operator):
         super().__init__()
         self.d = int(d)
         self.wrap(operator1, operator2)
-        self.forward_days_required += d
+        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         operator1, operator2 = self.wrapped_operator
@@ -299,18 +359,29 @@ class Ts_Max(Operator):
         super().__init__()
         self.d = int(d)
         self.wrap(operator)
-        self.forward_days_required += d
+        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         return ts_max(series_list)
+
+class Ts_Min(Operator):
+    def __init__(self, operator:Operator, d:int=1):
+        super().__init__()
+        self.d = int(d)
+        self.wrap(operator)
+        self.forward_days_required += int(d)
+    
+    def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
+        series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
+        return ts_min(series_list)
 
 class Ts_Argmax(Operator):
     def __init__(self, operator:Operator, d:int=1):
         super().__init__()
         self.d = int(d)
         self.wrap(operator)
-        self.forward_days_required += d
+        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
@@ -321,7 +392,7 @@ class Ts_Argmin(Operator):
         super().__init__()
         self.d = int(d)
         self.wrap(operator)
-        self.forward_days_required += d
+        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
@@ -332,7 +403,7 @@ class Ts_Rank(Operator):
         super().__init__()
         self.d = int(d)
         self.wrap(operator)
-        self.forward_days_required += d
+        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
@@ -343,7 +414,7 @@ class Ts_Sum(Operator):
         super().__init__()
         self.d = int(d)
         self.wrap(operator)
-        self.forward_days_required += d
+        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
@@ -352,9 +423,10 @@ class Ts_Sum(Operator):
 class Ts_Mean(Operator):
     def __init__(self, operator:Operator, d:int=1):
         super().__init__()
+
         self.d = int(d)
         self.wrap(operator)
-        self.forward_days_required += d
+        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
@@ -365,7 +437,7 @@ class Ts_Product(Operator):
         super().__init__()
         self.d = int(d)
         self.wrap(operator)
-        self.forward_days_required += d
+        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
@@ -376,18 +448,80 @@ class Ts_Stddev(Operator):
         super().__init__()
         self.d = int(d)
         self.wrap(operator)
-        self.forward_days_required += d
+        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         return ts_std(series_list) 
+
+class IndustryNeutralize(Operator):
+    def __init__(self, operator:Operator, level:Literal["sector", "industry", "subindustry"]="sector"):
+        super().__init__()
+        self.level = level
+        self.wrap(operator)
+
+    def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
+        factor_values = self.wrapped_operator.calculate(day_index, file_list)
+        industry_classification = IndClass(level=self.level).calculate(day_index, file_list)
+        return neutralize_factor(factor_values, industry_classification)
+
+class Returns(Operator):
+    def __init__(self):
+        super().__init__()
+        self.forward_days_required += 1
+
+    def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
+        return (Delta(Close(), d=1)/Delay(Close(), d=1)).calculate(day_index, file_list)
+
+class ADV(Operator):
+    def __init__(self, d:int=1):
+        super().__init__()
+        self.d = int(d)
+        self.forward_days_required += int(d)
+
+    def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
+        return Ts_Mean(Vol(), d=self.d).calculate(day_index, file_list)
+
+class DecayLinear(Operator):
+    def __init__(self, operator:Operator, d:int=1):
+        super().__init__()
+        self.d = int(d)
+        self.wrap(operator)
+        self.forward_days_required += int(d)
+
+    def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
+        series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
+        weights = np.arange(self.d, 0, -1)
+        return ts_weighted_sum(series_list, weights=weights)
+    
+class VWAP(Operator):
+    """
+    VWAP(Volume-Weighted Average Price)Operator, 成交量加权平均价格算子
+
+        VWAP = sum_{i=1}^{d} TypePrice_i * Vol_i / sum_{i=1}^{d} Vol_i
+        TypePrice_i = (High_i + Low_i + Close_i) / 3
+
+    JointQuant使用均价AVG代替。
+    这里我们使用典型价格TypePrice代替。
+    """
+
+    def __init__(self, d:int=0):
+        super().__init__()
+        self.d = int(d)
+        self.forward_days_required += int(d)
+
+    def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
+        if self.d == 0:
+            return Divide((High()+Low()+Close()), 3).calculate(day_index, file_list)
+        else:
+            return Divide(Ts_Sum((High()+Low()+Close())/3 * Vol(), d=self.d), Ts_Sum(Vol(), d=self.d)).calculate(day_index, file_list)
 
 def ts_max(series_list: List[pd.Series]):
     series_list = align_series_list(series_list)
     _r = []
     d = len(series_list)
     
-    for i in range(len(series_list[0])):  # 样本数
+    for i in range(len(series_list[0])): 
         max_value = np.max([series_list[j][i] for j in range(d)])
         _r.append(max_value)
     
@@ -398,7 +532,7 @@ def ts_min(series_list: List[pd.Series]):
     _r = []
     d = len(series_list)
     
-    for i in range(len(series_list[0])):  # 样本数
+    for i in range(len(series_list[0])): 
         min_value = np.min([series_list[j][i] for j in range(d)])
         _r.append(min_value)
     
@@ -409,7 +543,7 @@ def ts_argmax(series_list: List[pd.Series]):
     _r = []
     d = len(series_list)
     
-    for i in range(len(series_list[0])):  # 样本数
+    for i in range(len(series_list[0])):  
         argmax_value = np.argmax([series_list[j][i] for j in range(d)])
         _r.append(argmax_value)
     
@@ -420,7 +554,7 @@ def ts_argmin(series_list: List[pd.Series]):
     _r = []
     d = len(series_list)
     
-    for i in range(len(series_list[0])):  # 样本数
+    for i in range(len(series_list[0])):
         argmin_value = np.argmin([series_list[j][i] for j in range(d)])
         _r.append(argmin_value)
     
@@ -431,7 +565,7 @@ def ts_rank(series_list: List[pd.Series]):
     _r = []
     d = len(series_list)
     
-    for i in range(len(series_list[0])):  # 样本数
+    for i in range(len(series_list[0])): 
         value = pd.Series([series_list[j][i] for j in range(d)]).rank(method="average", na_option="keep", ascending=True)
         rank_value = (value / value.sum(skipna=True))[-1]
         _r.append(rank_value)
@@ -440,35 +574,31 @@ def ts_rank(series_list: List[pd.Series]):
 
 def ts_sum(series_list: List[pd.Series]):
     series_list = align_series_list(series_list)
-    _r = []
-    d = len(series_list)
-    
-    for i in range(len(series_list[0])):  # 样本数
-        sum_value = np.sum([series_list[j][i] for j in range(d)])
-        _r.append(sum_value)
-    
+    _r = np.sum(series_list, axis=0)
     return pd.Series(_r)
 
 def ts_mean(series_list: List[pd.Series]):
     series_list = align_series_list(series_list)
-    _r = []
     d = len(series_list)
-    
-    for i in range(len(series_list[0])):  # 样本数
-        mean_value = np.mean([series_list[j][i] for j in range(d)])
-        _r.append(mean_value)
-    
+    _r = np.sum(series_list, axis=0) / d
+    return pd.Series(_r)
+
+def ts_weighted_sum(series_list: List[pd.Series], weights):
+    weights = weights / weights.sum()
+    series_list = align_series_list(series_list)
+    _r = np.sum([w * s for w, s in zip(weights, series_list)], axis=0)
+    return pd.Series(_r)
+
+def ts_weighted_mean(series_list: List[pd.Series], weights):
+    weights = weights / weights.sum()
+    series_list = align_series_list(series_list)
+    d = len(series_list)
+    _r = np.sum([w * s for w, s in zip(weights, series_list)], axis=0) / d
     return pd.Series(_r)
 
 def ts_prod(series_list: List[pd.Series]):
     series_list = align_series_list(series_list)
-    _r = []
-    d = len(series_list)
-    
-    for i in range(len(series_list[0])):  # 样本数
-        prod_value = np.prod([series_list[j][i] for j in range(d)])
-        _r.append(prod_value)
-    
+    _r = np.prod(series_list, axis=0)
     return pd.Series(_r)
 
 def ts_std(series_list: List[pd.Series]):
@@ -535,6 +665,39 @@ def ts_cov(series_list1: List[pd.Series], series_list2: List[pd.Series]) -> pd.S
     # 将所有样本的相关性合并为一个Series并返回
     return pd.Series(_r)
 
+def neutralize_factor(factor_values, industry_classification):
+    """
+    剔除行业影响，对因子值进行行业中性化处理。
+
+    参数:
+    - factor_values: pd.Series, 因子值，索引为股票代码
+    - industry_classification: pd.Series, 行业分类，索引为股票代码
+
+    返回:
+    - pd.Series, 剔除行业影响后的因子值（残差）
+    """
+    # 构建哑变量矩阵
+    industry_dummies = pd.get_dummies(industry_classification, prefix='industry')
+
+    # 确保因子值和哑变量矩阵的索引一致
+    factor_values = factor_values.reindex(industry_dummies.index)
+
+    # 构建回归模型
+    X = industry_dummies.values
+    y = factor_values.values.reshape(-1, 1)
+
+    # 线性回归
+    model = LinearRegression()
+    model.fit(X, y)
+
+    # 提取残差
+    residuals = y - model.predict(X)
+
+    # 将残差转换为 Series
+    residuals_series = pd.Series(residuals.flatten(), index=factor_values.index)
+
+    return residuals_series
+
 def align_series_list(series_list: List[pd.Series]) -> List[pd.Series]:
     """
     对齐series列表中的所有series，使得它们的长度一致，短的补NaN。
@@ -554,7 +717,7 @@ def align_series_list(series_list: List[pd.Series]) -> List[pd.Series]:
     
     return aligned_series_list
 
-
-o = TernaryOperator(Open()<Close(), Close(), Open())
-print(o.forward_days_required)
-print(o(3, [r"data\test\20130104.csv", r"data\test\20130107.csv", r"data\test\20130108.csv", r"data\test\20130109.csv", r"data\test\20130110.csv", r"data\test\20130111.csv"]))
+#if __name__ == "__main__":
+#    o = DecayLinear(Open()<Close(), d=2)
+#    print(o.forward_days_required)
+#    print(o(2, [r"data\test\20130104.csv", r"data\test\20130107.csv", r"data\test\20130108.csv"]))
