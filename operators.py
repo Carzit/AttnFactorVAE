@@ -25,7 +25,7 @@ class Operator:
 
     def wrap(self, *operator:Union["Operator", Tuple["Operator","Operator"]]) -> None:
         operator = tuple([Constant(o) if isinstance(o, Number) else o for o in operator])
-        self.forward_days_required:int = max([o.forward_days_required for o in operator])
+        self.forward_days_required += max([o.forward_days_required for o in operator])
         if len(operator) == 1:
             operator = operator[0]
         self.wrapped_operator = operator
@@ -107,6 +107,15 @@ class Operator:
         
     def __call__(self, *args, **kwds)->pd.Series:
         return self.calculate(*args, **kwds)
+    
+    def __repr__(self):
+        if self.wrapped_operator is None:
+            return f"{self.__class__.__name__}"
+        elif isinstance(self.wrapped_operator, Operator):
+            wrapped_repr = repr(self.wrapped_operator) 
+        else:
+            wrapped_repr = ", ".join(repr(operator) for operator in self.wrapped_operator) 
+        return f"{self.__class__.__name__}({wrapped_repr})"
 
 class Constant(Operator):
     def __init__(self, value):
@@ -115,6 +124,9 @@ class Constant(Operator):
     
     def calculate(self, day_index:int, file_list:List[str])->Number:
         return self.v
+    
+    def __repr__(self):
+        return str(self.v)
 
 class InfixOperator(Operator):
     def __init__(self, operator1:Union[Operator, Number], operator2:Union[Operator, Number]):
@@ -126,65 +138,104 @@ class Add(InfixOperator):
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) + operator2.calculate(day_index, file_list)
     
+    def __repr__(self):
+        return f"({" + ".join(repr(operator) for operator in self.wrapped_operator) })"
+    
 class Subtract(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) - operator2.calculate(day_index, file_list)
+    
+    def __repr__(self):
+        return f"({" - ".join(repr(operator) for operator in self.wrapped_operator) })"
     
 class Multiply(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) * operator2.calculate(day_index, file_list)
     
+    def __repr__(self):
+        return f"({" * ".join(repr(operator) for operator in self.wrapped_operator) })"
+    
 class Divide(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) / operator2.calculate(day_index, file_list)
     
+    def __repr__(self):
+        return f"({" / ".join(repr(operator) for operator in self.wrapped_operator) })"
+    
 class Power(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) ** operator2.calculate(day_index, file_list)
+    
+    def __repr__(self):
+        return f"({" ** ".join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Greaterthan(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) > operator2.calculate(day_index, file_list)
+    
+    def __repr__(self):
+        return f"({" > ".join(repr(operator) for operator in self.wrapped_operator) })"
 
 class GreaterEqual(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) >= operator2.calculate(day_index, file_list)
+    
+    def __repr__(self):
+        return f"({" >= ".join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Lessthan(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) < operator2.calculate(day_index, file_list)  
+    
+    def __repr__(self):
+        return f"({" < ".join(repr(operator) for operator in self.wrapped_operator) })"
 
 class LessEqual(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) <= operator2.calculate(day_index, file_list)
+    
+    def __repr__(self):
+        return f"({" <= ".join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Equal(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) == operator2.calculate(day_index, file_list)
+    
+    def __repr__(self):
+        return f"({" == ".join(repr(operator) for operator in self.wrapped_operator) })"
 
 class NotEqual(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) != operator2.calculate(day_index, file_list)
+    
+    def __repr__(self):
+        return f"({" != ".join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Or(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) | operator2.calculate(day_index, file_list)
     
+    def __repr__(self):
+        return f"({" | ".join(repr(operator) for operator in self.wrapped_operator) })"
+    
 class And(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) & operator2.calculate(day_index, file_list)
+    
+    def __repr__(self):
+        return f"({" & ".join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Min(Operator):
     def __init__(self, *operators:Operator):
@@ -214,6 +265,10 @@ class TernaryOperator(Operator):
         condition_operator, true_operator, false_operator = self.wrapped_operator
         condition = condition_operator.calculate(day_index, file_list)
         return condition * true_operator.calculate(day_index, file_list) + (1-condition)*false_operator.calculate(day_index, file_list)
+    
+    def __repr__(self):
+        condition_operator, true_operator, false_operator = self.wrapped_operator
+        return f"{condition_operator} ? {true_operator} : {false_operator}"
     
 class Open(Operator):
     def __init__(self):
@@ -265,6 +320,9 @@ class IndClass(Operator):
     def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         return utils.load_dataframe(path=file_list[day_index])[f"indclass.{self.level}"]
     
+    def __repr__(self):
+        return f"{self.__class__.__name__}.{self.level}"
+    
 class Rank(Operator):
     def __init__(self, operator:Operator, ascending=True):
         super().__init__()
@@ -308,32 +366,41 @@ class Scale(Operator):
     def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         return self.wrapped_operator.calculate(day_index, file_list) / self.wrapped_operator.calculate(day_index, file_list).sum(skipna=True) * self.a
 
-class Delay(Operator):
-    def __init__(self, operator:Operator, d:int=1):
+class TimeSeriesOperator(Operator):
+    def __init__(self, d:int=1):
         super().__init__()
         self.d = int(d)
-        self.wrap(operator)
         self.forward_days_required += int(d)
+
+    def __repr__(self):
+        if self.wrapped_operator is None:
+            return f"{self.__class__.__name__}({self.d})"
+        elif isinstance(self.wrapped_operator, Operator):
+            wrapped_repr = repr(self.wrapped_operator) + f", d={self.d}"
+        else:
+            wrapped_repr = ", ".join(repr(operator) for operator in self.wrapped_operator) + f", d={self.d}"
+        return f"{self.__class__.__name__}({wrapped_repr})"
+
+class Delay(TimeSeriesOperator):
+    def __init__(self, operator:Operator, d:int=1):
+        super().__init__(d)
+        self.wrap(operator)
 
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         return self.wrapped_operator.calculate(day_index-self.d, file_list)
 
-class Delta(Operator):
+class Delta(TimeSeriesOperator):
     def __init__(self, operator:Operator, d:int=1):
-        super().__init__()
-        self.d = d
+        super().__init__(d)
         self.wrap(operator)
-        self.forward_days_required += int(d)
 
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         return self.wrapped_operator.calculate(day_index, file_list) - Delay(self.wrapped_operator, d=self.d).calculate(day_index, file_list)
 
-class Ts_Corr(Operator):
+class Ts_Corr(TimeSeriesOperator):
     def __init__(self, operator1:Operator, operator2:Operator, d:int=1):
-        super().__init__()
-        self.d = int(d)
+        super().__init__(d)
         self.wrap(operator1, operator2)
-        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         operator1, operator2 = self.wrapped_operator
@@ -341,12 +408,10 @@ class Ts_Corr(Operator):
         series_list2 = [operator2.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         return ts_corr(series_list1, series_list2)
 
-class Ts_Cov(Operator):
+class Ts_Cov(TimeSeriesOperator):
     def __init__(self, operator1:Operator, operator2:Operator, d:int=1):
-        super().__init__()
-        self.d = int(d)
+        super().__init__(d)
         self.wrap(operator1, operator2)
-        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         operator1, operator2 = self.wrapped_operator
@@ -354,116 +419,103 @@ class Ts_Cov(Operator):
         series_list2 = [operator2.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         return ts_cov(series_list1, series_list2)
 
-class Ts_Max(Operator):
+class Ts_Max(TimeSeriesOperator):
     def __init__(self, operator:Operator, d:int=1):
-        super().__init__()
-        self.d = int(d)
+        super().__init__(d)
         self.wrap(operator)
-        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         return ts_max(series_list)
 
-class Ts_Min(Operator):
+class Ts_Min(TimeSeriesOperator):
     def __init__(self, operator:Operator, d:int=1):
-        super().__init__()
-        self.d = int(d)
+        super().__init__(d)
         self.wrap(operator)
-        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         return ts_min(series_list)
 
-class Ts_Argmax(Operator):
+class Ts_Argmax(TimeSeriesOperator):
     def __init__(self, operator:Operator, d:int=1):
-        super().__init__()
-        self.d = int(d)
+        super().__init__(d)
         self.wrap(operator)
-        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         return ts_argmax(series_list)
 
-class Ts_Argmin(Operator):
+class Ts_Argmin(TimeSeriesOperator):
     def __init__(self, operator:Operator, d:int=1):
-        super().__init__()
-        self.d = int(d)
+        super().__init__(d)
         self.wrap(operator)
-        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         return ts_argmin(series_list)
 
-class Ts_Rank(Operator):
+class Ts_Rank(TimeSeriesOperator):
     def __init__(self, operator:Operator, d:int=1):
-        super().__init__()
-        self.d = int(d)
+        super().__init__(d)
         self.wrap(operator)
-        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         return ts_rank(series_list)      
 
-class Ts_Sum(Operator):
+class Ts_Sum(TimeSeriesOperator):
     def __init__(self, operator:Operator, d:int=1):
-        super().__init__()
-        self.d = int(d)
+        super().__init__(d)
         self.wrap(operator)
-        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         return ts_sum(series_list)   
 
-class Ts_Mean(Operator):
+class Ts_Mean(TimeSeriesOperator):
     def __init__(self, operator:Operator, d:int=1):
-        super().__init__()
-
-        self.d = int(d)
+        super().__init__(d)
         self.wrap(operator)
-        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         return ts_mean(series_list) 
 
-class Ts_Product(Operator):
+class Ts_Product(TimeSeriesOperator):
     def __init__(self, operator:Operator, d:int=1):
-        super().__init__()
-        self.d = int(d)
+        super().__init__(d)
         self.wrap(operator)
-        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         return ts_prod(series_list) 
 
-class Ts_Stddev(Operator):
+class Ts_Stddev(TimeSeriesOperator):
     def __init__(self, operator:Operator, d:int=1):
-        super().__init__()
-        self.d = int(d)
+        super().__init__(d)
         self.wrap(operator)
-        self.forward_days_required += int(d)
     
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         return ts_std(series_list) 
 
 class IndustryNeutralize(Operator):
-    def __init__(self, operator:Operator, level:Literal["sector", "industry", "subindustry"]="sector"):
+    def __init__(self, operator:Operator, level:Union[Literal["sector", "industry", "subindustry"], IndClass]="sector"):
         super().__init__()
-        self.level = level
+        if isinstance(level, str):
+            level = IndClass(level)
+        self.level:IndClass = level
         self.wrap(operator)
 
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         factor_values = self.wrapped_operator.calculate(day_index, file_list)
-        industry_classification = IndClass(level=self.level).calculate(day_index, file_list)
+        industry_classification = self.level.calculate(day_index, file_list)
         return neutralize_factor(factor_values, industry_classification)
+    
+    def __repr__(self):
+        wrapped_repr = repr(self.wrapped_operator) + f", {repr(self.level)}"
+        return f"{self.__class__.__name__}({wrapped_repr})"
 
 class Returns(Operator):
     def __init__(self):
@@ -473,28 +525,24 @@ class Returns(Operator):
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         return (Delta(Close(), d=1)/Delay(Close(), d=1)).calculate(day_index, file_list)
 
-class ADV(Operator):
+class ADV(TimeSeriesOperator):
     def __init__(self, d:int=1):
-        super().__init__()
-        self.d = int(d)
-        self.forward_days_required += int(d)
+        super().__init__(d)
 
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         return Ts_Mean(Vol(), d=self.d).calculate(day_index, file_list)
 
-class DecayLinear(Operator):
+class DecayLinear(TimeSeriesOperator):
     def __init__(self, operator:Operator, d:int=1):
-        super().__init__()
-        self.d = int(d)
+        super().__init__(d)
         self.wrap(operator)
-        self.forward_days_required += int(d)
 
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         series_list = [self.wrapped_operator.calculate(day_index-self.d+1+i, file_list) for i in range(self.d)]
         weights = np.arange(self.d, 0, -1)
         return ts_weighted_sum(series_list, weights=weights)
     
-class VWAP(Operator):
+class VWAP(TimeSeriesOperator):
     """
     VWAP(Volume-Weighted Average Price)Operator, 成交量加权平均价格算子
 
@@ -506,9 +554,7 @@ class VWAP(Operator):
     """
 
     def __init__(self, d:int=0):
-        super().__init__()
-        self.d = int(d)
-        self.forward_days_required += int(d)
+        super().__init__(d)
 
     def calculate(self, day_index:int, file_list:List[str]) -> pd.Series:
         if self.d == 0:
@@ -717,7 +763,8 @@ def align_series_list(series_list: List[pd.Series]) -> List[pd.Series]:
     
     return aligned_series_list
 
-#if __name__ == "__main__":
-#    o = DecayLinear(Open()<Close(), d=2)
-#    print(o.forward_days_required)
-#    print(o(2, [r"data\test\20130104.csv", r"data\test\20130107.csv", r"data\test\20130108.csv"]))
+if __name__ == "__main__":
+    o = DecayLinear(Open()<Close(), d=2)
+    print(o.forward_days_required)
+    print(o)
+    print(o(2, [r"data\test\20130104.csv", r"data\test\20130107.csv", r"data\test\20130108.csv"]))

@@ -1,3 +1,4 @@
+import os
 from operators import *
 
 alpha001 = Rank(Ts_Argmax(Power(TernaryOperator(Returns()<0, Ts_Stddev(Returns(), 5), Close()), 2), d=5)) - 0.5
@@ -114,3 +115,9 @@ alpha099 = (Rank(Ts_Corr(Ts_Sum(((High() + Low()) / 2), 19.8975), Ts_Sum(ADV(60)
 alpha100 = (0 - (1 * (((1.5 * Scale(IndustryNeutralize(IndustryNeutralize(Rank(((((Close() - Low()) - (High() - Close())) / (High() - Low())) * Vol())), IndClass("subindustry")), IndClass("subindustry")))) - Scale(IndustryNeutralize((Ts_Corr(Close(), Rank(ADV(20)), 5) - Rank(Ts_Argmin(Close(), 30))), IndClass("subindustry")))) * (Vol() / ADV(20)))))
 alpha101 = (Close() - Open()) / ((High() - Low()) + 0.001)
 
+alphas = [alpha001, alpha002, alpha003, alpha004, alpha005, alpha006, alpha007, alpha008, alpha009, alpha010, alpha011, alpha012, alpha013, alpha014, alpha015, alpha016, alpha017, alpha018, alpha019, alpha020, alpha021, alpha022, alpha023, alpha024, alpha025, alpha026, alpha027, alpha028, alpha029, alpha030, alpha031, alpha032, alpha033, alpha034, alpha035, alpha036, alpha037, alpha038, alpha039, alpha040, alpha041, alpha042, alpha043, alpha044, alpha045, alpha046, alpha047, alpha048, alpha049, alpha050, alpha051, alpha052, alpha053, alpha054, alpha055, alpha056, alpha057, alpha058, alpha059, alpha060, alpha061, alpha062, alpha063, alpha064, alpha065, alpha066, alpha067, alpha068, alpha069, alpha070, alpha071, alpha072, alpha073, alpha074, alpha075, alpha076, alpha077, alpha078, alpha079, alpha080, alpha081, alpha082, alpha083, alpha084, alpha085, alpha086, alpha087, alpha088, alpha089, alpha090, alpha091, alpha092, alpha093, alpha094, alpha095, alpha096, alpha097, alpha098, alpha099, alpha100, alpha101]
+
+for i,a in enumerate(alphas):
+    print(i, a.forward_days_required)
+print(alpha053)
+print(alpha053(9, [rf"data\test\{f}" for f in os.listdir(r"data\test")]))
