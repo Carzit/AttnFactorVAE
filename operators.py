@@ -6,7 +6,7 @@ __all__ = ["Operator",
            "Ts_Corr", "Ts_Cov", "Ts_Max", "Ts_Min", "Ts_Argmax", "Ts_Argmin", "Ts_Rank", "Ts_Sum", "Ts_Mean", "Ts_Product", "Ts_Stddev"]
 
 from numbers import Number
-from typing import List, Tuple, Dict, Literal, Optional, Callable, Any, Union
+from typing import List, Tuple, Dict, Literal, Union, Optional, Callable, Any
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
@@ -313,12 +313,43 @@ class Cap(Operator):
         return utils.load_dataframe(path=file_list[day_index])["cap"]
     
 class IndClass(Operator):
-    def __init__(self, level:Literal["sector", "industry", "subindustry"]):
+    constant:bool=False
+    sector:pd.Series=None
+    industry:pd.Series=None
+    subindustry:pd.Series=None
+
+    def __init__(self, 
+                 level:Literal["sector", "industry", "subindustry"]):
         super().__init__()
+        if level == "subindustry":
+            level = "industry"
         self.level = level
     
     def calculate(self, day_index:int, file_list:List[str])->pd.Series:
-        return utils.load_dataframe(path=file_list[day_index])[f"indclass.{self.level}"]
+        if self.constant:
+            if self.level == "sector":
+                return self.sector
+            elif self.level == "industry":
+                return self.industry
+            elif self.level == "subindustry":
+                if self.subindustry:
+                    return self.subindustry
+                else:
+                    return self.industry
+        else:
+            return utils.load_dataframe(path=file_list[day_index])[f"indclass.{self.level}"]
+    
+    @classmethod
+    def enable_constant(cls, sector:pd.Series, industry:pd.Series, subindustry:Optional[pd.Series]=None):
+        cls.constant = True
+        cls.sector = sector
+        cls.industry = industry
+        cls.subindustry = subindustry
+
+    @classmethod
+    def unable_constant(cls):
+        cls.constant = False
+
     
     def __repr__(self):
         return f"{self.__class__.__name__}.{self.level}"
@@ -765,6 +796,11 @@ def align_series_list(series_list: List[pd.Series]) -> List[pd.Series]:
 
 if __name__ == "__main__":
     o = DecayLinear(Open()<Close(), d=2)
+    a = IndClass("sector")
+    b = IndClass("industry")
+    print(b.constant)
+    a.enable_constant(pd.Series([1,2,3]), pd.Series([4,5,6]))
+    print(b.constant)
     print(o.forward_days_required)
     print(o)
     print(o(2, [r"data\test\20130104.csv", r"data\test\20130107.csv", r"data\test\20130108.csv"]))

@@ -94,9 +94,18 @@ def str2device(device:Literal["auto", "cpu", "cuda"]) -> torch.device:
     else:
         raise argparse.ArgumentTypeError(f"Unexpected device `{device}`. dtype must be `cuda`, `cpu` or `auto`.")
 
-def save_dataframe(df:pd.DataFrame, path:str, format:Literal["csv", "pkl", "parquet", "feather"]="pkl") -> None:
-    if not path.endswith(format):
-        path += f".{format}"
+def save_dataframe(df:Union[pd.DataFrame, pd.Series], 
+                   path:str, 
+                   format:Literal["auto", "csv", "pkl", "parquet", "feather"]="auto") -> None:
+    """
+    支持多种文件格式的保存方法，同时支持多种函数调用需求。
+    可以直接在文件保存路径path中指明文件格式，也可以在显式地使用format参数，使用format时会自动添加文件扩展名，假如保存路径中未给出。
+    """
+    if format == "auto":
+        format = os.path.basename(path)[os.path.basename(path).find(".")+1:]
+    else:
+        if not path.endswith(format):
+            path += f".{format}"
     if format == "csv":
         df.to_csv(path)
     elif format ==  "pkl":
@@ -110,21 +119,17 @@ def save_dataframe(df:pd.DataFrame, path:str, format:Literal["csv", "pkl", "parq
 
 def load_dataframe(path:str, format:Literal["auto", "csv", "pkl", "parquet", "feather"]="auto") -> pd.DataFrame:
     if format == "auto":
-        _format = os.path.basename(path)[os.path.basename(path).find(".")+1:]
-    else:
-        _format = format
-
-    if _format == "csv":
+        format = os.path.basename(path)[os.path.basename(path).find(".")+1:]
+    if format == "csv":
         df = pd.read_csv(path, index_col=0)
-    elif _format ==  "pkl":
+    elif format ==  "pkl":
         df = pd.read_pickle(path)
-    elif _format == "parquet":
+    elif format == "parquet":
         df = pd.read_parquet(path)
-    elif _format == "feather":
+    elif format == "feather":
         df = pd.read_feather(path)
     else:
-        print(_format)
-        raise NotImplementedError(f"Unsupported file format `{_format}`. The supported file formats include `csv`, `pkl`, `parquet` and `feather`.")
+        raise NotImplementedError(f"Unsupported file format `{format}`. The supported file formats include `csv`, `pkl`, `parquet` and `feather`.")
     return df
 
 def save_checkpoint(model:torch.nn.Module, save_folder:str, save_name:str, save_format:Literal[".pt",".safetensors"]=".pt"):
