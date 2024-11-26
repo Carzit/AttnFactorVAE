@@ -1,7 +1,11 @@
 import os
+import sys
 import logging
+import argparse
 from typing import List, Tuple, Dict, Literal, Union, Optional, Callable, Any
+
 from tqdm import tqdm
+import pandas as pd
 
 from operators import *
 from preparers import LoggerPreparer
@@ -127,13 +131,15 @@ class SingleAlphaProcessor:
                  name:str, 
                  file_list:List[str], 
                  save_folder:str,
-                 save_format:Literal["csv", "pkl", "parquet", "feather"] = "csv"):
+                 save_format:Literal["auto", "csv", "pkl", "parquet", "feather"] = "csv"):
         self.alpha_name = name.lower()
-
         self.operator:Operator = self.alphas[int(self.alpha_name.removeprefix("alpha"))-1]
+
+        self.logger:logging.Logger
+
         self.file_list = file_list
         self.save_folder = os.path.join(save_folder, self.alpha_name)
-        self.save_format:Literal["csv", "pkl", "parquet", "feather"] = save_format
+        self.save_format:Literal["auto", "csv", "pkl", "parquet", "feather"] = save_format
 
     def process(self):
         forward_days_required = self.operator.forward_days_required
@@ -148,8 +154,8 @@ class AlphasProcessor:
     def __init__(self, 
                  read_folder:str, 
                  save_folder:str,
-                 read_format:Literal["csv", "pkl", "parquet", "feather"] = "csv",
-                 save_format:Literal["csv", "pkl", "parquet", "feather"] = "csv"):
+                 read_format:Literal["auto", "csv", "pkl", "parquet", "feather"] = "auto",
+                 save_format:Literal["auto", "csv", "pkl", "parquet", "feather"] = "csv"):
         
         self.read_folder:str = read_folder
         self.save_folder:str = save_folder
@@ -158,6 +164,7 @@ class AlphasProcessor:
         self.save_format:Literal["csv", "pkl", "parquet", "feather"] = save_format
 
         self.file_list:List[str] = [os.path.join(self.read_folder, f) for f in os.listdir(self.read_folder) if f.endswith(self.read_format)]
+        self.stock_code:pd.Series
 
         self.logger:logging.Logger
 
@@ -166,12 +173,12 @@ class AlphasProcessor:
                                                                                  file_list=self.file_list, 
                                                                                  save_folder=self.save_folder,
                                                                                  save_format=self.save_format) for n in self.alpha_names]
-        self.alpha_forward_days = [processor.operator.forward_days_required for processor in self.alpha_processors]
-
-        self.stock_code = utils.load_dataframe(self.file_list[0], format=self.read_format)["ts_code"]
+        self.alpha_forward_days:List[int] = [processor.operator.forward_days_required for processor in self.alpha_processors]
 
     def set_loggger(self, logger:logging.Logger):
         self.logger = logger
+        for processor in self.alpha_processors:
+            processor.logger = logger
 
     def check_consistency(self, file_list:List[str], col_name:str='ts_code'):
         if not file_list:
@@ -198,16 +205,58 @@ class AlphasProcessor:
                     return False
 
         self.logger.info("Consistency check passed")
+        self.stock_code = utils.load_dataframe(self.file_list[0], format=self.read_format)[col_name]
         return True
     
-    def 
+    def load_constant(self, cap_file:str, sector_file:str, industry_file:str, subindustry_file:str):
+        cap = utils.load_dataframe(cap_file, format=self.read_format)
+        sector = utils.load_dataframe(sector_file, format=self.read_format)
+        industry = utils.load_dataframe(industry_file, format=self.read_format)
+        subindustry = utils.load_dataframe(subindustry_file, format=self.read_format)
+        Cap.enable_constant(cap)
+        IndClass.enable_constant(sector, industry, subindustry)
 
-# 使用示例
-folder_path = "path/to/your/csv/folder"  # 替换为你的 CSV 文件夹路径
-check_ts_code_consistency(folder_path)
+    def process(self):
+        if not self.check_consistency(self.file_list):
+            raise ValueError(f"Inconsistency in {self.read_folder}")
 
+        if not os.path.exists(self.save_folder):
+            os.makedirs(self.save_folder)
 
-from typing import List, Tuple, Dict, Literal, Union, Optional, Callable, Any
+        for processor in self.alpha_processors:
+            processor.process()
+        
+    
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Calculate Alpha101")
+    parser.add_argument("--read_folder", type=str, required=True, help="Folder path to read data")
+    parser.add_argument("--save_folder", type=str, required=True, help="Folder path to save data")
+    parser.add_argument("--read_format", type=str, default="auto", choices=["auto", "csv", "pkl", "parquet", "feather"], help="Read file format")
+    parser.add_argument("--save_format", type=str, default="csv", choices=["auto", "csv", "pkl", "parquet", "feather"], help="Save file format")
+    parser.add_argument("--cap", type=str, default=None, help="(Optional)Path to cap file. If specified, Cap data will be used as constant")
+    parser.add_argument("--sector", type=str, default=None, help="(Optional)Path to sector file. If specified, Sector data will be used as constant")
+    parser.add_argument("--industry", type=str, default=None, help="(Optional)Path to industry file. If specified, Industry data will be used as constant")
+    parser.add_argument("--subindustry", type=str, default=None, help="(Optional)Path to subindustry file. If specified, Subindustry data will be used as constant")
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    args = parse_args()
+
+    logger = LoggerPreparer(name="Alpha101", 
+                            file_level=logging.INFO, 
+                            log_file=args.log_path).prepare()
+    logger.debug(f"Command: {' '.join(sys.argv)}")
+
+    processor = AlphasProcessor(read_folder=args.read_folder, 
+                                save_folder=args.save_folder, 
+                                read_format=args.read_format, 
+                                save_format=args.save_format)
+    processor.set_loggger(logger)
+
+    if args.cap and args.sector and args.industry and args.subindustry:
+        processor.load_constant(args.cap, args.sector, args.industry, args.subindustry)
+    processor.process()
+
             
 
 

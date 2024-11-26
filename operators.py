@@ -306,11 +306,23 @@ class Vol(Operator):
         return utils.load_dataframe(path=file_list[day_index])["vol"]
 
 class Cap(Operator):
+    constant:bool=False
+    cap:pd.Series=None
     def __init__(self):
         super().__init__()
     
     def calculate(self, day_index:int, file_list:List[str])->pd.Series:
         return utils.load_dataframe(path=file_list[day_index])["cap"]
+    
+    @classmethod
+    def enable_constant(cls, cap:pd.Series):
+        cls.constant = True
+        cls.cap = cap
+
+    @classmethod
+    def disable_constant(cls):
+        cls.constant = False
+        cls.cap = None
     
 class IndClass(Operator):
     constant:bool=False
@@ -347,8 +359,11 @@ class IndClass(Operator):
         cls.subindustry = subindustry
 
     @classmethod
-    def unable_constant(cls):
+    def disable_constant(cls):
         cls.constant = False
+        cls.sector = None
+        cls.industry = None
+        cls.subindustry = None
 
     
     def __repr__(self):
