@@ -474,7 +474,7 @@ eval_AttnFactorVAE.py [--log_path LOG_PATH] --save_configs SAVE_CONFIGS
 - - `MSE`即预测结果与真实值的平方差之均值
 - - `IC`为每个batch上(每个交易日)预测结果与真实值的Pearson相关系数之均值。
 
-$$ \text{IC}_ s = \frac{(r_ {\hat{y}_ s} - \mathbb{E}[r_ {\hat{y}_ s}])^T (r_ {y_ s} - \mathbb{E}[r_ {y_ s}])}{\text{std}(r_ {\hat{y}_ s}) \cdot \text{std}(r_ {y_s})} $$
+$$ \text{IC}_ s = \frac{(r_ {\hat{y}_ s} - \mathbb{E}[r_ {\hat{y}_ s}]) (r_ {y_ s} - \mathbb{E}[r_ {y_ s}])}{\text{std}(r_ {\hat{y}_ s}) \cdot \text{std}(r_ {y_s})} $$
 
 $$ \text{IC} = \mathbb{E}[\text{IC}_ s] = \frac{1}{T} \sum_{s=1}^{T} \text{IC}_ s $$
 
@@ -482,7 +482,7 @@ $$ \text{IC} = \mathbb{E}[\text{IC}_ s] = \frac{1}{T} \sum_{s=1}^{T} \text{IC}_ 
 
 - - `RankIC`为每个batch上(每个交易日)预测结果与真实值的Spearman相关系数之均值。
 
-$$ \text{RankIC}_ s = \frac{(\text{rank}(r_ {\hat{y}_ s}) - \mathbb{E}[\text{rank}(r_ {\hat{y}_ s})])^T (\text{rank}(r_ {y_ s}) - \mathbb{E}[\text{rank}(r_ {y_ s})])}{\text{std}(\text{rank}(r_ {\hat{y}_ s})) \cdot \text{std}(\text{rank}(r_ {y_ s}))} $$
+$$ \text{RankIC}_ s = \frac{(\text{rank}(r_ {\hat{y}_ s}) - \mathbb{E}[\text{rank}(r_ {\hat{y}_ s})]) (\text{rank}(r_ {y_ s}) - \mathbb{E}[\text{rank}(r_ {y_ s})])}{\text{std}(\text{rank}(r_ {\hat{y}_ s})) \cdot \text{std}(\text{rank}(r_ {y_ s}))} $$
 
 $$
 \text{RankIC} = \mathbb{E}[\text{RankIC}_ s] = \frac{1}{T} \sum_{s=1}^{T} \text{RankIC}_ s
