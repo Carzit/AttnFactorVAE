@@ -77,8 +77,8 @@ data_construct.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]
 --save_folder:
 处理后的结果保存的文件夹路径,子目录 quantity_price_feature, fundamental_feature 和 label 将在该文件夹中创建。
 
-### 2. standardization.py
-该工具用于标准化（可选）。有5种可用的标准化形式，包括：
+### 2. 数据标准化
+使用`standardization.py`进行标准化（可选）。有5种可用的标准化形式，包括：
 * 截面Z-Score 标准化（CSZScore） 对所有数据按日期聚合后进行 Z-Score 处理，主要目的在于保证每日横截面数据的可比性。Z-score = (x - μ)/σ
 * 截面排序标准化（CSRank） 对所有数据按日期聚合后进行排序处理，将排序结果作为模型输入。此方法主要目的在于排除异常值的影响，但缺点也很明显，丧失了数据间相对大小关系的刻画。
 * 数据集整体Z-Score标准化（ZScore） 截面标准化会使数据损失时序变化信息，而整个数据集做标准化可以将不同日期的相对大小关系也喂入模型进行学习。当然此处需要注意数据泄露问题，我们使用训练集算出均值和标准差后，将其用于整个数据集进行标准化。
@@ -117,8 +117,8 @@ standardization.py [--log_path LOG_PATH]
 --save_folder:
 保存文件夹路径。将会在该文件夹下自动生成对应的子文件夹。
 
-### 3. dataset.py 
-该工具用于从指定文件夹中获取数量-价格特征数据、基本面特征数据和标签数据,并生成训练、验证和测试数据集。数据集将根据用户指定的比例进行划分,并保存为指定格式的文件。
+### 3. 数据集构建
+使用`dataset.py`进行数据集构建。该工具用于从指定文件夹中获取量价特征数据、基本面特征数据和标签数据,并生成训练、验证和测试数据集。数据集将根据用户指定的比例进行划分,并保存为指定格式的文件。
 
 ```
 dataset.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME] 
@@ -176,10 +176,10 @@ dataset.py [--log_folder LOG_FOLDER] [--log_name LOG_NAME]
 - loose_drop: 仅在序列中所有横截面均出现 NaN 或 Inf 的股票代码上执行删除操作。  
 
 --cat:
-是否将数量-价格特征与基本面特征进行拼接。注意对于FactorVAE模型使用的数据集，该参数应为True；对于AttnFactorVAE和AttnRet模型使用的数据集，该参数应为False。 
+是否将量价特征与基本面特征进行拼接。注意对于FactorVAE模型使用的数据集，该参数应为True；对于AttnFactorVAE和AttnRet模型使用的数据集，该参数应为False。 
 默认值: False  
 --dtype:
-数据张量的类型。支持 FP32、FP64、FP16 或 BF16。
+数据张量的精度类型。支持 FP32、FP64、FP16 或 BF16。
 默认值: FP32  
 --val_seq_len:
 验证集的序列长度(天数)。如果未指定,默认为与训练集相同的长度。
@@ -348,7 +348,7 @@ train_AttnFactorVAE.py [--log_path LOG_PATH] [--save_configs SAVE_CONFIGS]
 --grad_clip_value: 梯度裁剪的绝对值限制(-1表示禁用,默认: -1)  
 --grad_clip_norm: 梯度裁剪的范数限制(-1表示禁用,默认: -1)  
 --detect_anomaly: 是否启用异常检测。为 autograd 引擎启用异常检测,在启用检测的情况下运行正向传递将允许反向传递打印创建失败反向函数的正向操作的回溯,则任何生成nan值的向后计算都会引发错误。(默认: False)
---dtype: 张量数据类型(默认: FP32, 可选: FP32、FP64、FP16、BF16)  
+--dtype: 张量数据精度类型(默认: FP32, 可选: FP32、FP64、FP16、BF16)  
 --device: 计算设备(默认: cuda,可选: cuda 或 cpu)  
 --sample_per_batch: 每 n 个批次检查一次样本数据(0表示禁用,默认: 0)  
 --report_per_epoch: 每 n 个 epoch 报告一次训练损失和验证损失(默认: 1)  
@@ -473,25 +473,34 @@ eval_AttnFactorVAE.py [--log_path LOG_PATH] --save_configs SAVE_CONFIGS
 - 评估度量： 
 - - `MSE`即预测结果与真实值的平方差之均值
 - - `IC`为每个batch上(每个交易日)预测结果与真实值的Pearson相关系数之均值。
+
 $$
 \text{IC}_s = \frac{(r_{\hat{y}_s} - \mathbb{E}[r_{\hat{y}_s}])^T (r_{y_s} - \mathbb{E}[r_{y_s}])}{\text{std}(r_{\hat{y}_s}) \cdot \text{std}(r_{y_s})}
 $$
+
 $$
 \text{IC} = \mathbb{E}[\text{IC}_s] = \frac{1}{T_{\text{test}}} \sum_{s=1}^{T_{\text{test}}} \text{IC}_s
 $$
+
 - - `RankIC`为每个batch上(每个交易日)预测结果与真实值的Spearman相关系数之均值。
+
 $$
 \text{RankIC}_s = \frac{(\text{rank}(r_{\hat{y}_s}) - \mathbb{E}[\text{rank}(r_{\hat{y}_s})])^T (\text{rank}(r_{y_s}) - \mathbb{E}[\text{rank}(r_{y_s})])}
 {\text{std}(\text{rank}(r_{\hat{y}_s})) \cdot \text{std}(\text{rank}(r_{y_s}))}
 $$
+
 $$
 \text{RankIC} = \mathbb{E}[\text{RankIC}_s] = \frac{1}{T_{\text{test}}} \sum_{s=1}^{T_{\text{test}}} \text{RankIC}_s
 $$
+
 - - `ICIR`为每个batch上(每个交易日)预测结果与真实值的Pearson相关系数之均值除以其标准差。
+
 $$
 \text{ICIR} = \frac{\mathbb{E}[\text{IC}_s]}{\text{std}(\text{IC}_s)}
 $$
+
 - - `RankICIR`为每个batch上(每个交易日)预测结果与真实值的Spearman相关系数之均值除以其标准差。
+
 $$
 \text{RankICIR} = \frac{\mathbb{E}[\text{RankIC}_s]}{\text{std}(\text{RankIC}_s)}
 $$
@@ -574,7 +583,7 @@ infer_AttnFactorVAE.py [--log_path LOG_PATH] [--save_configs SAVE_CONFIGS]
 **评估参数**    
 --checkpoints: 加载 checkpoint 的路径(可选, 可以传入一个或多个地址)
 --checkpoint_folder: checkpoint文件夹路径(可选，若指定则相当于checkpoints即为checkpoint_folder目录下所有pt文件和safetensors文件)
---dtype: 张量数据类型(默认: FP32, 可选: FP32、FP64、FP16、BF16)  
+--dtype: 张量数据精度类型(默认: FP32, 可选: FP32、FP64、FP16、BF16)  
 --device: 计算设备(默认: cuda, 可选: cuda 或 cpu)  
 --save_folder: 保存推理结果的文件夹路径  
 --save_folder: 保存推理结果的文件格式(默认: pkl, 可选: csv, pkl, parquet, feather)   
