@@ -71,11 +71,11 @@ class Downloader:
 def parse_args():
 	parser = argparse.ArgumentParser(description="Data download.")
 
-	parser.add_argument("-f", "--file_path", type = str, default = None,
+	parser.add_argument("-f", "--file_path", type = str, required = True,
 						help = "file path for json with stock codes and trade dates.")
 	parser.add_argument("-s", "--save_folder", type = str, required = True,
                         help = "Path of the folder for saving standardized data.")
-	parser.add_argument("--save_format", type=str, default="csv",
+	parser.add_argument("--save_format", type=str, default="pkl",
                         choices=["csv", "pkl", "parquet", "feather"],
                         help="File format to save, literally `csv`, `pkl`, `parquet` or `feather`. Default `pkl`.")
 	return parser.parse_args()
