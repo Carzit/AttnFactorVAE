@@ -142,13 +142,14 @@ class SingleAlphaProcessor:
         self.save_format:Literal["auto", "csv", "pkl", "parquet", "feather"] = save_format
 
     def process(self):
+        os.makedirs(self.save_folder)
         forward_days_required = self.operator.forward_days_required
         for i in tqdm(range(forward_days_required, len(self.file_list)), desc=self.alpha_name):
             date_name = os.path.splitext(os.path.basename(self.file_list[i]))[0]
             daily_alpha = self.operator(i , self.file_list).rename(self.alpha_name, inplace=True)
             utils.save_dataframe(df=daily_alpha, 
                                  path=os.path.join(self.save_folder, date_name), 
-                                 format=self.format)
+                                 format=self.save_format)
             
 class AlphasProcessor:
     def __init__(self, 
@@ -229,9 +230,11 @@ class AlphasProcessor:
     
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Calculate Alpha101")
+    parser.add_argument("--log_path", type=str, default="log/alpha101.log",
+                        help="Path of log file. Default `log/alpha101.log`")
     parser.add_argument("--read_folder", type=str, required=True, help="Folder path to read data")
     parser.add_argument("--save_folder", type=str, required=True, help="Folder path to save data")
-    parser.add_argument("--read_format", type=str, default="auto", choices=["auto", "csv", "pkl", "parquet", "feather"], help="Read file format")
+    parser.add_argument("--read_format", type=str, default="csv", choices=["auto", "csv", "pkl", "parquet", "feather"], help="Read file format")
     parser.add_argument("--save_format", type=str, default="csv", choices=["auto", "csv", "pkl", "parquet", "feather"], help="Save file format")
     parser.add_argument("--cap", type=str, default=None, help="(Optional)Path to cap file. If specified, Cap data will be used as constant")
     parser.add_argument("--sector", type=str, default=None, help="(Optional)Path to sector file. If specified, Sector data will be used as constant")
@@ -258,5 +261,5 @@ if __name__ == "__main__":
     processor.process()
 
             
-
+#example: python alpha101.py --read_folder "data\raw\raw" --save_folder "data\raw\rawer" --cap "data\cap.csv" --sector "data\sector.csv" --industry "data\industry.csv" --subindustry "data\subindustry.csv"
 
