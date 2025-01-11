@@ -118,6 +118,9 @@ class Operator:
         return f"{self.__class__.__name__}({wrapped_repr})"
 
 class Constant(Operator):
+    """
+    常数算子
+    """
     def __init__(self, value):
         super().__init__()
         self.v = value
@@ -129,11 +132,17 @@ class Constant(Operator):
         return str(self.v)
 
 class InfixOperator(Operator):
+    """
+    中缀运算算子基类
+    """
     def __init__(self, operator1:Union[Operator, Number], operator2:Union[Operator, Number]):
         super().__init__()
         self.wrap(operator1, operator2)
 
 class Add(InfixOperator):
+    """
+    加法算子
+    """
     def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) + operator2.calculate(day_index, file_list)
@@ -142,6 +151,9 @@ class Add(InfixOperator):
         return f"({' + '.join(repr(operator) for operator in self.wrapped_operator) })"
     
 class Subtract(InfixOperator):
+    """
+    减法算子
+    """
     def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) - operator2.calculate(day_index, file_list)
@@ -150,6 +162,9 @@ class Subtract(InfixOperator):
         return f"({' - '.join(repr(operator) for operator in self.wrapped_operator) })"
     
 class Multiply(InfixOperator):
+    """
+    乘法算子
+    """
     def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) * operator2.calculate(day_index, file_list)
@@ -158,6 +173,9 @@ class Multiply(InfixOperator):
         return f"({' * '.join(repr(operator) for operator in self.wrapped_operator) })"
     
 class Divide(InfixOperator):
+    """
+    除法算子
+    """
     eps = 1e-3
     def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
@@ -167,6 +185,9 @@ class Divide(InfixOperator):
         return f"({' / '.join(repr(operator) for operator in self.wrapped_operator) })"
     
 class Power(InfixOperator):
+    """
+    乘方算子
+    """
     def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) ** operator2.calculate(day_index, file_list)
@@ -175,6 +196,9 @@ class Power(InfixOperator):
         return f"({' ** '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Greaterthan(InfixOperator):
+    """
+    大于布尔算子
+    """
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) > operator2.calculate(day_index, file_list)
@@ -183,6 +207,9 @@ class Greaterthan(InfixOperator):
         return f"({' > '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class GreaterEqual(InfixOperator):
+    """
+    大于等于布尔算子
+    """
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) >= operator2.calculate(day_index, file_list)
@@ -191,6 +218,9 @@ class GreaterEqual(InfixOperator):
         return f"({' >= '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Lessthan(InfixOperator):
+    """
+    小于布尔算子
+    """
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) < operator2.calculate(day_index, file_list)  
@@ -199,6 +229,9 @@ class Lessthan(InfixOperator):
         return f"({' < '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class LessEqual(InfixOperator):
+    """
+    小于等于布尔算子
+    """
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) <= operator2.calculate(day_index, file_list)
@@ -207,6 +240,9 @@ class LessEqual(InfixOperator):
         return f"({' <= '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Equal(InfixOperator):
+    """
+    等于布尔算子
+    """
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) == operator2.calculate(day_index, file_list)
@@ -215,6 +251,9 @@ class Equal(InfixOperator):
         return f"({' == '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class NotEqual(InfixOperator):
+    """
+    不等于布尔算子
+    """
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) != operator2.calculate(day_index, file_list)
@@ -223,6 +262,9 @@ class NotEqual(InfixOperator):
         return f"({' != '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Or(InfixOperator):
+    """
+    或逻辑算子
+    """
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) | operator2.calculate(day_index, file_list)
@@ -231,6 +273,9 @@ class Or(InfixOperator):
         return f"({' | '.join(repr(operator) for operator in self.wrapped_operator) })"
     
 class And(InfixOperator):
+    """
+    与逻辑算子
+    """
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
         operator1, operator2 = self.wrapped_operator
         return operator1.calculate(day_index, file_list) & operator2.calculate(day_index, file_list)
@@ -239,6 +284,9 @@ class And(InfixOperator):
         return f"({' & '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Min(Operator):
+    """
+    最小值算子
+    """
     def __init__(self, *operators:Operator):
         super().__init__()
         self.wrap(*operators)
@@ -248,6 +296,9 @@ class Min(Operator):
         return pd.Series(np.min(_r, axis=0))
     
 class Max(Operator):
+    """
+    最大值算子
+    """
     def __init__(self, *operators:Operator):
         super().__init__()
         self.wrap(*operators)
@@ -272,6 +323,9 @@ class TernaryOperator(Operator):
         return f"{condition_operator} ? {true_operator} : {false_operator}"
     
 class Open(Operator):
+    """
+    数据提取算子：开盘价
+    """
     def __init__(self):
         super().__init__()
     
@@ -279,6 +333,9 @@ class Open(Operator):
         return utils.load_dataframe(path=file_list[day_index])["open"]
     
 class Close(Operator):
+    """
+    数据提取算子：收盘价
+    """
     def __init__(self):
         super().__init__()
     
@@ -286,6 +343,9 @@ class Close(Operator):
         return utils.load_dataframe(path=file_list[day_index])["close"]
 
 class High(Operator):
+    """
+    数据提取算子：最高价
+    """
     def __init__(self):
         super().__init__()
     
@@ -293,6 +353,9 @@ class High(Operator):
         return utils.load_dataframe(path=file_list[day_index])["high"]
     
 class Low(Operator):
+    """
+    数据提取算子：最低价
+    """
     def __init__(self):
         super().__init__()
     
@@ -300,6 +363,9 @@ class Low(Operator):
         return utils.load_dataframe(path=file_list[day_index])["low"]
 
 class Vol(Operator):
+    """
+    数据提取算子：成交量
+    """
     def __init__(self):
         super().__init__()
     
@@ -307,6 +373,9 @@ class Vol(Operator):
         return utils.load_dataframe(path=file_list[day_index])["vol"]
 
 class Cap(Operator):
+    """
+    数据提取算子：市值
+    """
     constant:bool=False
     cap:pd.Series=None
     def __init__(self):
@@ -326,6 +395,9 @@ class Cap(Operator):
         cls.cap = None
     
 class IndClass(Operator):
+    """
+    数据提取算子：行业分类
+    """
     constant:bool=False
     sector:pd.Series=None
     industry:pd.Series=None
@@ -371,6 +443,9 @@ class IndClass(Operator):
         return f"{self.__class__.__name__}.{self.level}"
     
 class Rank(Operator):
+    """
+    截面排名算子
+    """
     def __init__(self, operator:Operator, ascending=True):
         super().__init__()
         self.ascending=ascending
@@ -381,6 +456,9 @@ class Rank(Operator):
         return _r / _r.sum(skipna=True)
     
 class Abs(Operator):
+    """
+    绝对值算子
+    """
     def __init__(self, operator:Operator):
         super().__init__()
         self.wrap(operator)
@@ -389,6 +467,9 @@ class Abs(Operator):
         return self.wrapped_operator.calculate(day_index, file_list).abs()
     
 class Log(Operator):
+    """
+    对数算子
+    """
     eps = 1e-3
     def __init__(self, operator:Operator):
         super().__init__()
@@ -398,6 +479,9 @@ class Log(Operator):
         return np.log((self.wrapped_operator+self.eps).calculate(day_index, file_list))
     
 class Sign(Operator):
+    """
+    符号算子
+    """
     def __init__(self, operator:Operator):
         super().__init__()
         self.wrap(operator)
@@ -406,6 +490,9 @@ class Sign(Operator):
         return np.sign(self.wrapped_operator.calculate(day_index, file_list))
 
 class Scale(Operator):
+    """
+    缩放算子
+    """
     def __init__(self, operator:Operator, a:Number=1):
         super().__init__()
         self.a = a
@@ -415,6 +502,9 @@ class Scale(Operator):
         return self.wrapped_operator.calculate(day_index, file_list) / self.wrapped_operator.calculate(day_index, file_list).sum(skipna=True) * self.a
 
 class TimeSeriesOperator(Operator):
+    """
+    时间序列算子基类
+    """
     def __init__(self, d:int=1):
         super().__init__()
         self.d = int(d)
@@ -430,6 +520,9 @@ class TimeSeriesOperator(Operator):
         return f"{self.__class__.__name__}({wrapped_repr})"
 
 class Delay(TimeSeriesOperator):
+    """
+    时间序列延迟算子
+    """
     def __init__(self, operator:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator)
@@ -438,6 +531,9 @@ class Delay(TimeSeriesOperator):
         return self.wrapped_operator.calculate(day_index-self.d, file_list)
 
 class Delta(TimeSeriesOperator):
+    """
+    时间序列差分算子
+    """
     def __init__(self, operator:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator)
@@ -446,6 +542,9 @@ class Delta(TimeSeriesOperator):
         return self.wrapped_operator.calculate(day_index, file_list) - Delay(self.wrapped_operator, d=self.d).calculate(day_index, file_list)
 
 class Ts_Corr(TimeSeriesOperator):
+    """
+    时间序列相关系数算子
+    """
     def __init__(self, operator1:Operator, operator2:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator1, operator2)
@@ -457,6 +556,9 @@ class Ts_Corr(TimeSeriesOperator):
         return ts_corr(series_list1, series_list2)
 
 class Ts_Cov(TimeSeriesOperator):
+    """
+    时间序列协方差算子
+    """
     def __init__(self, operator1:Operator, operator2:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator1, operator2)
@@ -468,6 +570,9 @@ class Ts_Cov(TimeSeriesOperator):
         return ts_cov(series_list1, series_list2)
 
 class Ts_Max(TimeSeriesOperator):
+    """
+    时间序列最大值算子
+    """
     def __init__(self, operator:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator)
@@ -477,6 +582,9 @@ class Ts_Max(TimeSeriesOperator):
         return ts_max(series_list)
 
 class Ts_Min(TimeSeriesOperator):
+    """
+    时间序列最小值算子
+    """
     def __init__(self, operator:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator)
@@ -486,6 +594,9 @@ class Ts_Min(TimeSeriesOperator):
         return ts_min(series_list)
 
 class Ts_Argmax(TimeSeriesOperator):
+    """
+    时间序列最大值索引算子
+    """
     def __init__(self, operator:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator)
@@ -495,6 +606,9 @@ class Ts_Argmax(TimeSeriesOperator):
         return ts_argmax(series_list)
 
 class Ts_Argmin(TimeSeriesOperator):
+    """
+    时间序列最小值索引算子
+    """
     def __init__(self, operator:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator)
@@ -504,6 +618,9 @@ class Ts_Argmin(TimeSeriesOperator):
         return ts_argmin(series_list)
 
 class Ts_Rank(TimeSeriesOperator):
+    """
+    时间序列排名算子
+    """
     def __init__(self, operator:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator)
@@ -513,6 +630,9 @@ class Ts_Rank(TimeSeriesOperator):
         return ts_rank(series_list)      
 
 class Ts_Sum(TimeSeriesOperator):
+    """
+    时间序列求和算子
+    """
     def __init__(self, operator:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator)
@@ -522,6 +642,9 @@ class Ts_Sum(TimeSeriesOperator):
         return ts_sum(series_list)   
 
 class Ts_Mean(TimeSeriesOperator):
+    """
+    时间序列均值算子
+    """
     def __init__(self, operator:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator)
@@ -531,6 +654,9 @@ class Ts_Mean(TimeSeriesOperator):
         return ts_mean(series_list) 
 
 class Ts_Product(TimeSeriesOperator):
+    """
+    时间序列累乘算子
+    """
     def __init__(self, operator:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator)
@@ -540,6 +666,9 @@ class Ts_Product(TimeSeriesOperator):
         return ts_prod(series_list) 
 
 class Ts_Stddev(TimeSeriesOperator):
+    """
+    时间序列标准差算子
+    """
     def __init__(self, operator:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator)
@@ -549,6 +678,9 @@ class Ts_Stddev(TimeSeriesOperator):
         return ts_std(series_list) 
 
 class IndustryNeutralize(Operator):
+    """
+    行业中性化算子
+    """
     def __init__(self, operator:Operator, level:Union[Literal["sector", "industry", "subindustry"], IndClass]="sector"):
         super().__init__()
         if isinstance(level, str):
@@ -566,6 +698,9 @@ class IndustryNeutralize(Operator):
         return f"{self.__class__.__name__}({wrapped_repr})"
 
 class Returns(Operator):
+    """
+    时间序列收益率算子
+    """
     def __init__(self):
         super().__init__()
         self.forward_days_required += 1
@@ -574,6 +709,9 @@ class Returns(Operator):
         return (Delta(Close(), d=1)/Delay(Close(), d=1)).calculate(day_index, file_list)
 
 class ADV(TimeSeriesOperator):
+    """
+    时间序列平均成交量算子
+    """
     def __init__(self, d:int=1):
         super().__init__(d)
 
@@ -581,6 +719,9 @@ class ADV(TimeSeriesOperator):
         return Ts_Mean(Vol(), d=self.d).calculate(day_index, file_list)
 
 class DecayLinear(TimeSeriesOperator):
+    """
+    时间序列线性衰减算子
+    """
     def __init__(self, operator:Operator, d:int=1):
         super().__init__(d)
         self.wrap(operator)
@@ -592,7 +733,7 @@ class DecayLinear(TimeSeriesOperator):
     
 class VWAP(TimeSeriesOperator):
     """
-    VWAP(Volume-Weighted Average Price)Operator, 成交量加权平均价格算子
+    成交量加权平均价格算子
 
         VWAP = sum_{i=1}^{d} TypePrice_i * Vol_i / sum_{i=1}^{d} Vol_i
         TypePrice_i = (High_i + Low_i + Close_i) / 3
