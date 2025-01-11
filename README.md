@@ -655,6 +655,27 @@ infer_AttnFactorVAE.py [--log_path LOG_PATH] [--save_configs SAVE_CONFIGS]
 
 另外，模型不再需要dropout相关的参数：在评估时所有dropout会冻结为0.
 
+### 9. 回测
+使用`backtest.py`进行回测。  
+回测需要使用的数据有市场数据、指数数据、投资组合数据。回测结果将保存在指定文件夹的 alpha 与 label 子文件夹中。
+
+```
+backtest.py --market_data MARKET_DATA
+            --indices_data INDICES_DATA
+            --prediction_data PREDICTION_DATA
+            --save_folder SAVE_FOLDER
+```
+
+#### 必需参数
+--market_data:
+市场数据文件的路径。  
+--indices_data:
+指数数据的路径。  
+--prediction_data:
+投资组合数据的路径。  
+--save_folder:
+回测结果的保存路径。
+默认值：data/results
 
 ## 相关工作
 -  [FactorVAE: A Probabilistic Dynamic Factor Model Based on Variational
