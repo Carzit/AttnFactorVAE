@@ -139,7 +139,7 @@ class Add(InfixOperator):
         return operator1.calculate(day_index, file_list) + operator2.calculate(day_index, file_list)
     
     def __repr__(self):
-        return f"({" + ".join(repr(operator) for operator in self.wrapped_operator) })"
+        return f"({' + '.join(repr(operator) for operator in self.wrapped_operator) })"
     
 class Subtract(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
@@ -147,7 +147,7 @@ class Subtract(InfixOperator):
         return operator1.calculate(day_index, file_list) - operator2.calculate(day_index, file_list)
     
     def __repr__(self):
-        return f"({" - ".join(repr(operator) for operator in self.wrapped_operator) })"
+        return f"({' - '.join(repr(operator) for operator in self.wrapped_operator) })"
     
 class Multiply(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
@@ -155,15 +155,16 @@ class Multiply(InfixOperator):
         return operator1.calculate(day_index, file_list) * operator2.calculate(day_index, file_list)
     
     def __repr__(self):
-        return f"({" * ".join(repr(operator) for operator in self.wrapped_operator) })"
+        return f"({' * '.join(repr(operator) for operator in self.wrapped_operator) })"
     
 class Divide(InfixOperator):
+    eps = 1e-3
     def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
         operator1, operator2 = self.wrapped_operator
-        return operator1.calculate(day_index, file_list) / operator2.calculate(day_index, file_list)
+        return operator1.calculate(day_index, file_list) / (operator2+self.eps).calculate(day_index, file_list)
     
     def __repr__(self):
-        return f"({" / ".join(repr(operator) for operator in self.wrapped_operator) })"
+        return f"({' / '.join(repr(operator) for operator in self.wrapped_operator) })"
     
 class Power(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[Number, pd.Series]:
@@ -171,7 +172,7 @@ class Power(InfixOperator):
         return operator1.calculate(day_index, file_list) ** operator2.calculate(day_index, file_list)
     
     def __repr__(self):
-        return f"({" ** ".join(repr(operator) for operator in self.wrapped_operator) })"
+        return f"({' ** '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Greaterthan(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
@@ -179,7 +180,7 @@ class Greaterthan(InfixOperator):
         return operator1.calculate(day_index, file_list) > operator2.calculate(day_index, file_list)
     
     def __repr__(self):
-        return f"({" > ".join(repr(operator) for operator in self.wrapped_operator) })"
+        return f"({' > '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class GreaterEqual(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
@@ -187,7 +188,7 @@ class GreaterEqual(InfixOperator):
         return operator1.calculate(day_index, file_list) >= operator2.calculate(day_index, file_list)
     
     def __repr__(self):
-        return f"({" >= ".join(repr(operator) for operator in self.wrapped_operator) })"
+        return f"({' >= '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Lessthan(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
@@ -195,7 +196,7 @@ class Lessthan(InfixOperator):
         return operator1.calculate(day_index, file_list) < operator2.calculate(day_index, file_list)  
     
     def __repr__(self):
-        return f"({" < ".join(repr(operator) for operator in self.wrapped_operator) })"
+        return f"({' < '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class LessEqual(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
@@ -203,7 +204,7 @@ class LessEqual(InfixOperator):
         return operator1.calculate(day_index, file_list) <= operator2.calculate(day_index, file_list)
     
     def __repr__(self):
-        return f"({" <= ".join(repr(operator) for operator in self.wrapped_operator) })"
+        return f"({' <= '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Equal(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
@@ -211,7 +212,7 @@ class Equal(InfixOperator):
         return operator1.calculate(day_index, file_list) == operator2.calculate(day_index, file_list)
     
     def __repr__(self):
-        return f"({" == ".join(repr(operator) for operator in self.wrapped_operator) })"
+        return f"({' == '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class NotEqual(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
@@ -219,7 +220,7 @@ class NotEqual(InfixOperator):
         return operator1.calculate(day_index, file_list) != operator2.calculate(day_index, file_list)
     
     def __repr__(self):
-        return f"({" != ".join(repr(operator) for operator in self.wrapped_operator) })"
+        return f"({' != '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Or(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
@@ -227,7 +228,7 @@ class Or(InfixOperator):
         return operator1.calculate(day_index, file_list) | operator2.calculate(day_index, file_list)
     
     def __repr__(self):
-        return f"({" | ".join(repr(operator) for operator in self.wrapped_operator) })"
+        return f"({' | '.join(repr(operator) for operator in self.wrapped_operator) })"
     
 class And(InfixOperator):
     def calculate(self, day_index:int, file_list:List[str])->Union[bool, pd.Series]:
@@ -235,7 +236,7 @@ class And(InfixOperator):
         return operator1.calculate(day_index, file_list) & operator2.calculate(day_index, file_list)
     
     def __repr__(self):
-        return f"({" & ".join(repr(operator) for operator in self.wrapped_operator) })"
+        return f"({' & '.join(repr(operator) for operator in self.wrapped_operator) })"
 
 class Min(Operator):
     def __init__(self, *operators:Operator):
@@ -388,12 +389,13 @@ class Abs(Operator):
         return self.wrapped_operator.calculate(day_index, file_list).abs()
     
 class Log(Operator):
+    eps = 1e-3
     def __init__(self, operator:Operator):
         super().__init__()
         self.wrap(operator)
     
     def calculate(self, day_index:int, file_list:List[str])->pd.Series:
-        return np.log(self.wrapped_operator.calculate(day_index, file_list))
+        return np.log((self.wrapped_operator+self.eps).calculate(day_index, file_list))
     
 class Sign(Operator):
     def __init__(self, operator:Operator):
@@ -659,7 +661,7 @@ def ts_rank(series_list: List[pd.Series]):
     
     for i in range(len(series_list[0])): 
         value = pd.Series([series_list[j][i] for j in range(d)]).rank(method="average", na_option="keep", ascending=True)
-        rank_value = (value / value.sum(skipna=True))[-1]
+        rank_value = (value / value.sum(skipna=True))
         _r.append(rank_value)
     
     return pd.Series(_r)
