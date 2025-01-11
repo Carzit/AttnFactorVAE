@@ -17,16 +17,11 @@ class Downloader:
 		self.stock_code = []
 		self.trade_data = {}
 		self.stock_indinfo = pd.DataFrame(columns = ['sector', 'industry', 'subindustry', 'cap'])
-
-	def load_str(self,
-				 input_stock_code,
-				 input_date):
-		#直接输入股票代码及所需日期（不推荐）。输入时均用逗号分隔。 Still under construction.
-		pass
+		self.dfs_indinfo = []
 
 	def load_json(self,
 				  file_path):
-		#使用json批量载入股票代码及日期（推荐）。
+		#使用json批量载入股票代码及日期。
 		with open(file_path, "r") as fp:
 			json_data = json.load(fp)
 		self.datelist = json_data["trade_date"]
@@ -45,6 +40,7 @@ class Downloader:
 			self.trade_data[dates] = self.trade_data[dates].set_index("ts_code")
 			self.trade_data[dates].columns = ["adj_close","close","high","low","open","vol"]
 			self.trade_data[dates] = self.trade_data[dates].reindex(index = self.stock_code, fill_value = np.nan)
+			self.trade_data[dates] = self.trade_data[dates].reset_index(drop = False)
 
 	def yfinance_indinfo(self):
 		# 下载股票行业信息因子。
@@ -54,11 +50,9 @@ class Downloader:
 				self.stock_indinfo.loc[item] = [ticker.info['sectorKey'], ticker.info['industryKey'], ticker.info['industryKey'], ticker.info['marketCap']]
 			except KeyError:
 				pass
-		self.stock_indinfo.rename_axis("ts_code")
 		self.stock_indinfo = self.stock_indinfo.reindex(index = self.stock_code, fill_value = np.nan)
-		for dates in self.trade_data.keys():
-			self.trade_data[dates] = pd.concat([self.trade_data[dates], self.stock_indinfo], axis = 1)
-			self.trade_data[dates].drop(["adj_close"])
+		cols = self.stock_indinfo.columns
+		self.dfs_indinfo = [self.stock_indinfo[[col]].rename_axis("ts_code") for col in cols]
 
 	def save_file(self,
 				  save_folder,
@@ -67,11 +61,16 @@ class Downloader:
 			utils.save_dataframe(df = self.trade_data[dates],
 								 path = os.path.join(save_folder, f"{dates}.{save_format}"),
 								 format = save_format)
+		for item in tqdm(self.dfs_indinfo):
+			utils.save_dataframe(df = item,
+								 path = os.path.join(save_folder, f"{str(item.columns[0])}.{save_format}"),
+								 format = save_format)
+
 
 def parse_args():
 	parser = argparse.ArgumentParser(description="Data download.")
 
-	parser.add_argument("-f", "--file_path", type = str, default = None,
+	parser.add_argument("-f", "--file_path", type = str, required = True,
 						help = "file path for json with stock codes and trade dates.")
 	parser.add_argument("-s", "--save_folder", type = str, required = True,
                         help = "Path of the folder for saving standardized data.")
@@ -97,4 +96,4 @@ if __name__ == "__main__":
 	print("Saving file...")
 	Downloader.save_file(args.save_folder, args.save_format)
 
-#example: python data_downloader.py -f "configs\config_datadownload.json" -s "data\raw\raw"
+#example: python data_downloader.py -f "configs\config_download_example.json" -s "data\raw\raw"
