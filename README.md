@@ -565,7 +565,7 @@ $$
 
 ### 8. 推理
 
-使用`eval_AttnFactorVAE.py`进行AttnFactorVAE模型的训练。训练参数有两种载入途径：从外部文件导入配置和使用命令行参数设定配置。  
+使用`infer_AttnFactorVAE.py`进行AttnFactorVAE模型的训练。训练参数有两种载入途径：从外部文件导入配置和使用命令行参数设定配置。  
 
 #### 8.1 从外部文件导入配置
 ```
