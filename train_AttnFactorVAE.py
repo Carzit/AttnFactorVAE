@@ -15,8 +15,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 
 
 from dataset import DataLoader_Preparer, StockSequenceDataset, StockDataset
-from nets import AttnFactorVAE
-from loss import ObjectiveLoss, Pred_Loss
+from modules import AttnFactorVAE, ObjectiveLoss, Pred_Loss
 from preparers import Model_AttnFactorVAE_Preparer, ObjectiveLoss_Preparer, Optimizer_Preparer, LoggerPreparer
 import utils
 

@@ -12,8 +12,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, Sampler
 
 from dataset import StockDataset, StockSequenceCatDataset, DataLoader_Preparer
-from nets import FactorVAE
-from loss import MSE_Loss, PearsonCorr, SpearmanCorr
+from modules import MSE_Loss, PearsonCorr, SpearmanCorr, FactorVAE
 from preparers import Model_FactorVAE_Preparer, LoggerPreparer
 import utils
 

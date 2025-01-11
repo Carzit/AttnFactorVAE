@@ -1,12 +1,14 @@
-import pandas as pd
-import logging
-import backtrader as bt # 使用backtrader回测框架
-from datetime import datetime as dt
 import os
-import matplotlib.pyplot as plt
-import numpy as np
-from tqdm import tqdm
+import logging
 import argparse
+from datetime import datetime as dt
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import backtrader as bt # 使用backtrader回测框架
+from tqdm import tqdm
+
 from preparers import LoggerPreparer
 
 class BacktestData: # 数据读取器

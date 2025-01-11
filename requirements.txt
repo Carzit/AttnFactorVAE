@@ -1,20 +1,21 @@
 pandas
 numpy <2.1,>=1.22
 scipy
+
 tqdm
+toml
 dask
 dask_ml
+
 colorama
 matplotlib
 
 torch
 tensorboard
 safetensors
-
 lion-pytorch
 dadaptation
 diffusers
 transformers
-toml
 
 backtrader

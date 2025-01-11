@@ -79,7 +79,7 @@ class Operator:
         return Greaterthan(self, operator)
 
     def __ge__(self, operator:Union["Operator", Number]) -> "Operator":
-        return LessEqual(self, operator)
+        return GreaterEqual(self, operator)
 
     def __eq__(self, operator:Union["Operator", Number]) -> "Operator":
         return Equal(self, operator)

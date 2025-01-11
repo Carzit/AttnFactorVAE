@@ -15,8 +15,7 @@ import diffusers
 import transformers
 import safetensors
 
-from nets import *
-from loss import *
+from modules import *
 import utils
 
 init(autoreset=True)

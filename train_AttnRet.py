@@ -15,8 +15,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 
 
 from dataset import DataLoader_Preparer, StockSequenceDataset, StockDataset
-from nets import AttnRet
-from loss import MSE_Loss
+from modules import AttnRet, MSE_Loss
 from preparers import Model_AttnRet_Preparer, Optimizer_Preparer, LoggerPreparer
 import utils
 

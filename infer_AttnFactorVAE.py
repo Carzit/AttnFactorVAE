@@ -14,7 +14,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, Sampler
 
 from dataset import StockDataset, StockSequenceDataset, DataLoader_Preparer
-from nets import AttnFactorVAE
+from modules import AttnFactorVAE
 from preparers import Model_AttnFactorVAE_Preparer, LoggerPreparer
 import utils
 

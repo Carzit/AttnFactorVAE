@@ -12,8 +12,8 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, Sampler
 
 from dataset import StockDataset, StockSequenceDataset, DataLoader_Preparer
-from nets import AttnRet
-from loss import MSE_Loss, PearsonCorr, SpearmanCorr
+
+from modules import MSE_Loss, PearsonCorr, SpearmanCorr, AttnRet
 from preparers import Model_AttnRet_Preparer, LoggerPreparer
 import utils
 
